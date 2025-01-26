@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自动加载 XLSX 文件的查分系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        input[type="text"], button, input[type="file"] {
+            display: block;
+            margin: 10px 0;
+            padding: 8px;
+            font-size: 16px;
+            width: 100%;
+        }
+        .table-container {
+            width: 100%;
+            overflow-x: auto; /* 启用水平滚动条 */
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px; /* 确保表格不会太窄 */
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+            word-wrap: break-word; /* 长内容换行 */
+        }
+        td {
+            max-width: 150px; /* 限制单元格宽度 */
+        }
+        @media screen and (max-width: 768px) {
+            th, td {
+                font-size: 12px; /* 小屏幕缩小字体 */
+            }
+            td {
+                max-width: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demo of YeTang school</h1>
+        <input type="text" id="queryInput" placeholder="输入学生姓名">
+        <button id="searchButton">查询</button>
+        <div class="table-container">
+            <table id="resultTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>学校</th>
+                        <th>班级</th>
+                        <th>考号</th>
+                        <th>姓名</th>
+                        <th>选科</th>
+                        <th>总分</th>
+                        <th>市排名</th>
+                        <th>级排名</th>
+                        <th>班排名</th>
+                        <th>语文总分</th>
+                        <th>语文市排名</th>
+                        <th>语文级排名</th>
+                        <th>语文班排名</th>
+                        <th>数学总分</th>
+                        <th>数学市排名</th>
+                        <th>数学级排名</th>
+                        <th>数学班排名</th>
+                        <th>英语总分</th>
+                        <th>英语市排名</th>
+                        <th>英语级排名</th>
+                        <th>英语班排名</th>
+                        <th>物理总分</th>
+                        <th>物理市排名</th>
+                        <th>物理级排名</th>
+                        <th>物理班排名</th>
+                        <th>化学总分</th>
+                        <th>化学市排名</th>
+                        <th>化学级排名</th>
+                        <th>化学班排名</th>
+                        <th>生物总分</th>
+                        <th>生物市排名</th>
+                        <th>生物级排名</th>
+                        <th>生物班排名</th>
+                        <th>政治总分</th>
+                        <th>政治市排名</th>
+                        <th>政治级排名</th>
+                        <th>政治班排名</th>
+                        <th>历史总分</th>
+                        <th>历史市排名</th>
+                        <th>历史级排名</th>
+                        <th>历史班排名</th>
+                        <th>地理总分</th>
+                        <th>地理市排名</th>
+                        <th>地理级排名</th>
+                        <th>地理班排名</th>
+                        <th>小语种总分</th>
+                        <th>小语种市排名</th>
+                        <th>小语种级排名</th>
+                        <th>小语种班排名</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script>
+        let sheetData = [];
+
+       async function loadXLSX() {
+    try {
+        const response = await fetch('./test.xlsx'); // 替换为你的文件名
+        const arrayBuffer = await response.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+
+        // 解析 sharedStrings.xml
+        const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
+        const sharedStrings = parseSharedStrings(sharedStringsXML);
+
+        // 解析 sheet1.xml
+        const sheetXML = await zip.file("xl/worksheets/sheet1.xml").async("string");
+        sheetData = parseSheet(sheetXML, sharedStrings);
+
+        alert("XLSX 文件加载成功！");
+    } catch (error) {
+        console.error("加载 XLSX 文件失败:", error); // 输出详细错误信息
+        alert("未能加载本地 XLSX 文件，请检查文件路径是否正确。");
+    }
+}
+        // 查询功能
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const query = document.getElementById('queryInput').value.trim();
+            if (!query) {
+                alert("请输入查询条件");
+                return;
+            }
+
+            const results = sheetData.filter(row => row[3] === query);
+            const tableBody = document.getElementById('resultTable').querySelector('tbody');
+            tableBody.innerHTML = "";
+
+            if (results.length > 0) {
+                results.forEach(row => {
+                    const tr = document.createElement('tr');
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+                document.getElementById('resultTable').style.display = "table";
+            } else {
+                alert("未找到匹配的记录");
+            }
+        });
+
+        // 解析 sharedStrings.xml
+        function parseSharedStrings(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const strings = doc.getElementsByTagName("t");
+            return Array.from(strings).map(node => node.textContent);
+        }
+
+        // 解析 sheet1.xml
+        function parseSheet(xml, sharedStrings) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const rows = doc.getElementsByTagName("row");
+
+            const data = [];
+            for (const row of rows) {
+                const cells = Array.from(row.getElementsByTagName("c"));
+                const rowData = cells.map(cell => {
+                    const type = cell.getAttribute("t");
+                    const value = cell.getElementsByTagName("v")[0]?.textContent;
+
+                    if (type === "s") {
+                        // Shared string
+                        return sharedStrings[parseInt(value, 10)];
+                    }
+                    return value || "";
+                });
+                data.push(rowData);
+            }
+            return data;
+        }
+loadXLSX() ;
+    </script>
+</body>
+</html>
