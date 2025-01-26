@@ -119,29 +119,80 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
-        let sheetData = [];
+        let allSheetData = []; // 存储所有工作表数据
 
-       async function loadXLSX() {
-    try {
-        const response = await fetch('./all.xlsx');
-        const arrayBuffer = await response.arrayBuffer();
-        const zip = await JSZip.loadAsync(arrayBuffer);
+        async function loadXLSX() {
+            try {
+                const response = await fetch('./all.xlsx');
+                const arrayBuffer = await response.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
 
-       
-        const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
-        const sharedStrings = parseSharedStrings(sharedStringsXML);
+                // 解析 sharedStrings.xml (字符串表)
+                const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
+                const sharedStrings = parseSharedStrings(sharedStringsXML);
 
-        
-        const sheetXML = await zip.file("xl/worksheets/sheet1.xml").async("string");
-        sheetData = parseSheet(sheetXML, sharedStrings);
+                // 解析 workbook.xml 获取所有工作表的路径
+                const workbookXML = await zip.file("xl/workbook.xml").async("string");
+                const sheetPaths = parseWorkbook(workbookXML);
 
-        alert("数据库加载成功");
-    } catch (error) {
-        console.error("加载 XLSX 文件失败:", error); 
-        alert("加载数据库失败");
-    }
-}
-       
+                // 遍历所有工作表文件，解析数据
+                for (const sheetPath of sheetPaths) {
+                    const sheetXML = await zip.file(`xl/worksheets/${sheetPath}`).async("string");
+                    const sheetData = parseSheet(sheetXML, sharedStrings);
+                    allSheetData.push(...sheetData); // 合并工作表数据
+                }
+
+                alert("数据库加载成功，共加载了 " + sheetPaths.length + " 个工作表");
+            } catch (error) {
+                console.error("加载 XLSX 文件失败:", error);
+                alert("加载数据库失败");
+            }
+        }
+
+        // 解析 sharedStrings.xml
+        function parseSharedStrings(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const strings = doc.getElementsByTagName("t");
+            return Array.from(strings).map(node => node.textContent);
+        }
+
+        // 解析 workbook.xml，获取所有工作表的路径
+        function parseWorkbook(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const sheets = doc.getElementsByTagName("sheet");
+            return Array.from(sheets).map(sheet => {
+                const rid = sheet.getAttribute("r:id");
+                return `sheet${rid.replace("rId", "")}.xml`; // 构造 sheet 文件路径
+            });
+        }
+
+        // 解析单个 sheet.xml
+        function parseSheet(xml, sharedStrings) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const rows = doc.getElementsByTagName("row");
+
+            const data = [];
+            for (const row of rows) {
+                const cells = Array.from(row.getElementsByTagName("c"));
+                const rowData = cells.map(cell => {
+                    const type = cell.getAttribute("t");
+                    const value = cell.getElementsByTagName("v")[0]?.textContent;
+
+                    if (type === "s") {
+                        // Shared string
+                        return sharedStrings[parseInt(value, 10)];
+                    }
+                    return value || "";
+                });
+                data.push(rowData);
+            }
+            return data;
+        }
+
+        // 查询功能
         document.getElementById('searchButton').addEventListener('click', () => {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) {
@@ -149,7 +200,7 @@
                 return;
             }
 
-            const results = sheetData.filter(row => row[3] === query);
+            const results = allSheetData.filter(row => row[3] === query);
             const tableBody = document.getElementById('resultTable').querySelector('tbody');
             tableBody.innerHTML = "";
 
@@ -169,38 +220,8 @@
             }
         });
 
-
-        function parseSharedStrings(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const strings = doc.getElementsByTagName("t");
-            return Array.from(strings).map(node => node.textContent);
-        }
-
-     
-        function parseSheet(xml, sharedStrings) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const rows = doc.getElementsByTagName("row");
-
-            const data = [];
-            for (const row of rows) {
-                const cells = Array.from(row.getElementsByTagName("c"));
-                const rowData = cells.map(cell => {
-                    const type = cell.getAttribute("t");
-                    const value = cell.getElementsByTagName("v")[0]?.textContent;
-
-                    if (type === "s") {
-                   
-                        return sharedStrings[parseInt(value, 10)];
-                    }
-                    return value || "";
-                });
-                data.push(rowData);
-            }
-            return data;
-        }
-loadXLSX() ;
+        // 自动加载
+        loadXLSX();
     </script>
 </body>
 </html>
