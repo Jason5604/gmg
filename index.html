@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>自动加载 XLSX 文件的查分系统</title>
+    <title>查分 @yuanuniverse</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,7 +28,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 800px; /* 确保表格不会太窄 */
+            min-width: 800px; 
         }
         table, th, td {
             border: 1px solid #ddd;
@@ -36,14 +36,14 @@
         th, td {
             padding: 8px;
             text-align: left;
-            word-wrap: break-word; /* 长内容换行 */
+            word-wrap: break-word; 
         }
         td {
-            max-width: 150px; /* 限制单元格宽度 */
+            max-width: 150px; 
         }
         @media screen and (max-width: 768px) {
             th, td {
-                font-size: 12px; /* 小屏幕缩小字体 */
+                font-size: 12px; 
             }
             td {
                 max-width: 100px;
@@ -53,7 +53,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>Demo of YeTang school</h1>
+        <h1>查分 @yuanuniverse</h1>
+        <h1>暂时仅限于兴宁市叶塘中学高一</h1>
         <input type="text" id="queryInput" placeholder="输入学生姓名">
         <button id="searchButton">查询</button>
         <div class="table-container">
@@ -122,29 +123,29 @@
 
        async function loadXLSX() {
     try {
-        const response = await fetch('./test.xlsx'); // 替换为你的文件名
+        const response = await fetch('./test.xlsx');
         const arrayBuffer = await response.arrayBuffer();
         const zip = await JSZip.loadAsync(arrayBuffer);
 
-        // 解析 sharedStrings.xml
+       
         const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
         const sharedStrings = parseSharedStrings(sharedStringsXML);
 
-        // 解析 sheet1.xml
+        
         const sheetXML = await zip.file("xl/worksheets/sheet1.xml").async("string");
         sheetData = parseSheet(sheetXML, sharedStrings);
 
-        alert("XLSX 文件加载成功！");
+        alert("数据库加载成功");
     } catch (error) {
-        console.error("加载 XLSX 文件失败:", error); // 输出详细错误信息
-        alert("未能加载本地 XLSX 文件，请检查文件路径是否正确。");
+        console.error("加载 XLSX 文件失败:", error); 
+        alert("加载数据库失败");
     }
 }
-        // 查询功能
+       
         document.getElementById('searchButton').addEventListener('click', () => {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) {
-                alert("请输入查询条件");
+                alert("请输入昵称");
                 return;
             }
 
@@ -168,7 +169,7 @@
             }
         });
 
-        // 解析 sharedStrings.xml
+
         function parseSharedStrings(xml) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
@@ -176,7 +177,7 @@
             return Array.from(strings).map(node => node.textContent);
         }
 
-        // 解析 sheet1.xml
+     
         function parseSheet(xml, sharedStrings) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
@@ -190,7 +191,7 @@
                     const value = cell.getElementsByTagName("v")[0]?.textContent;
 
                     if (type === "s") {
-                        // Shared string
+                   
                         return sharedStrings[parseInt(value, 10)];
                     }
                     return value || "";
