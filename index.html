@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>梅州期末联考高一查分系统 by@YuanUniverSe</title>
+    <title>梅州兴宁期末联考高一查分系统 by@YuanUniverSe</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -58,7 +58,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>梅州期末联考高一查分系统 by@YuanUniverSe</h1>
+        <h1>梅州兴宁期末联考高一查分系统 by@YuanUniverSe</h1>
         <p class="hint">仅输入学生姓名或考生号即可进行查询，输入考生号仅为了防止重名</p>
         <input type="text" id="queryInput" placeholder="输入学生姓名或考生号">
         <button id="searchButton">查询</button>
@@ -128,6 +128,7 @@
 
         async function loadXLSX() {
             try {
+                 
                 const response = await fetch('./all.xlsx');
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
@@ -224,7 +225,7 @@
                 file: `sheet${sheet.getAttribute("sheetId")}.xml`
             }));
         }
-
+alert("免责声明<br>1.本站用途仅供学生查询联考成绩，无任何盈利收费行为。<br>2.本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。<br>3.本站所用数据库均是公开数据并且通过合法途径取得。4.如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。 如果用户不接受本协议请立即退出本站。");
         loadXLSX();
     </script>
 </body>
