@@ -13,16 +13,21 @@
             max-width: 100%;
             margin: 0 auto;
         }
-        input[type="text"], button, input[type="file"] {
+        input[type="text"], button {
             display: block;
             margin: 10px 0;
             padding: 8px;
             font-size: 16px;
             width: 100%;
         }
+        .hint {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 10px;
+        }
         .table-container {
             width: 100%;
-            overflow-x: auto; 
+            overflow-x: auto;
             margin-top: 20px;
         }
         table {
@@ -39,11 +44,11 @@
             word-wrap: break-word;
         }
         td {
-            max-width: 150px; 
+            max-width: 150px;
         }
         @media screen and (max-width: 768px) {
             th, td {
-                font-size: 12px; 
+                font-size: 12px;
             }
             td {
                 max-width: 100px;
@@ -54,13 +59,14 @@
 <body>
     <div class="container">
         <h1>梅州期末联考高一查分系统 by@YuanUniverSe</h1>
-        <input type="text" id="queryInput" placeholder="输入学生考生号">
+        <p class="hint">仅输入学生姓名或考生号即可进行查询，输入考生号仅为了防止重名</p>
+        <input type="text" id="queryInput" placeholder="输入学生姓名或考生号">
         <button id="searchButton">查询</button>
         <div class="table-container">
             <table id="resultTable" style="display: none;">
                 <thead>
                     <tr>
-                         <th>学校</th>
+                        <th>学校</th>
                         <th>班级</th>
                         <th>考号</th>
                         <th>姓名</th>
@@ -118,7 +124,7 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
-        let combinedData = []; 
+        let combinedData = [];
 
         async function loadXLSX() {
             try {
@@ -131,7 +137,6 @@
 
                 const workbookXML = await zip.file("xl/workbook.xml").async("string");
                 const sheetNames = getSheetNames(workbookXML);
-
 
                 combinedData = [];
                 for (const sheet of sheetNames) {
@@ -146,22 +151,21 @@
                     }
                 }
 
-                alert(`数据库加载成功`);
+                alert("数据库加载成功");
             } catch (error) {
                 console.error("加载数据库失败:", error);
                 alert("数据库加载失败");
             }
         }
 
-
         document.getElementById('searchButton').addEventListener('click', () => {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) {
-                alert("请输入考生号");
+                alert("请输入学生姓名或考生号");
                 return;
             }
 
-            const results = combinedData.filter(row => row[2] === query); 
+            const results = combinedData.filter(row => row[3] === query || row[2] === query);
             const tableBody = document.getElementById('resultTable').querySelector('tbody');
             tableBody.innerHTML = "";
 
@@ -181,14 +185,12 @@
             }
         });
 
-  
         function parseSharedStrings(xml) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
             const strings = doc.getElementsByTagName("t");
             return Array.from(strings).map(node => node.textContent);
         }
-
 
         function parseSheet(xml, sharedStrings) {
             const parser = new DOMParser();
@@ -212,7 +214,6 @@
             return data;
         }
 
-
         function getSheetNames(xml) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
@@ -223,7 +224,6 @@
                 file: `sheet${sheet.getAttribute("sheetId")}.xml`
             }));
         }
-
 
         loadXLSX();
     </script>
