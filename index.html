@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>梅州兴宁期末联考高一查分系统 @叶天哲</title>
+    <title>梅州兴宁下学期期末联考高一查分系统 @叶天哲</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -155,11 +155,7 @@
                                     <span class="text-gray-600">选科:</span>
                                     <span id="detailSubject" class="font-medium text-gray-800"></span>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">方向:</span>
-                                    <span id="detailDirection" class="font-medium text-gray-800"></span>
                                 </div>
-                            </div>
                         </div>
                         
                         <div class="w-full md:w-2/3 bg-gray-50 rounded-lg p-4 card-hover">
@@ -667,8 +663,6 @@
             document.getElementById('detailSchool').textContent = row[map.base.school] || '-';
             document.getElementById('detailClass').textContent = row[map.base.class] || '-';
             document.getElementById('detailSubject').textContent = row[map.base.elective] || '-';
-            document.getElementById('detailDirection').textContent = map.base.direction;
-            
             // 填充总分信息
             document.getElementById('totalScore').textContent = row[map.subjects.total.score] || '-';
             document.getElementById('totalRankCity').textContent = row[map.subjects.total.rankCity] || '-';
@@ -701,13 +695,16 @@
                 .map(s => s.trim())
                 .filter(Boolean);
                 
-            // 如果没有明确的选科信息，尝试从方向推断
-            if (electiveSubjects.length === 0) {
-                electiveSubjects.push(map.base.direction);
-                // 根据方向添加可能的科目
-                if (map.base.direction === '物理') {
-                    electiveSubjects.push('化学', '生物', '政治', '地理');
-                } else {
+            // 如果没有明确的选科信息，尝试根据各个科目是否有分数来推断
+            const possibleSubjects = ['物理', '化学', '生物', '政治', '地理', '历史'];
+            possibleSubjects.forEach(subject => {
+                const key = getSubjectKey(subject);
+                const subjectData = map.subjects[key];
+                if (subjectData && row[subjectData.score]) {
+                    electiveSubjects.push(subject);
+                }
+            });
+    else {
                     electiveSubjects.push('化学', '生物', '政治', '地理');
                 }
             }
