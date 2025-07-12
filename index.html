@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生成绩查询系统</title>
+    <title>学生成绩查询系统 @叶天哲</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -65,7 +65,7 @@
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <i class="fa fa-graduation-cap text-2xl"></i>
-                <h1 class="text-xl md:text-2xl font-bold text-shadow">学生成绩查询系统</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-shadow">学生成绩查询系统 @叶天哲</h1>
             </div>
             <div class="hidden md:flex items-center space-x-6">
                 <a href="#" class="hover:text-accent transition-all-300">首页</a>
@@ -407,7 +407,7 @@
     <!-- 页脚 -->
     <footer class="bg-gray-900 text-white py-6">
         <div class="container mx-auto px-4 text-center">
-            <p>© 2025 学生成绩查询系统 - 版权所有</p>
+            <p>© 2025 学生成绩查询系统 - @叶天哲版权所有</p>
         </div>
     </footer>
 
@@ -698,3 +698,77 @@
             document.getElementById('englishRankSchool').textContent = student['英语_方向校名次'] || '-';
             document.getElementById('englishRankClass').textContent = student['英语_方向班名次'] || '-';
             
+            // 各科成绩 - 主科(物理/历史)
+            document.getElementById('mainSubjectScore').textContent = student[mainSubjectKey] || '-';
+            document.getElementById('mainSubjectGrade').textContent = student[`${mainSubjectKey}_等级`] || '-';
+            document.getElementById('mainSubjectRankAll').textContent = student[`${mainSubjectKey}_方向全体名次`] || '-';
+            document.getElementById('mainSubjectRankDistrict').textContent = student[`${mainSubjectKey}_方向区县名次`] || '-';
+            document.getElementById('mainSubjectRankSchool').textContent = student[`${mainSubjectKey}_方向校名次`] || '-';
+            document.getElementById('mainSubjectRankClass').textContent = student[`${mainSubjectKey}_方向班名次`] || '-';
+            
+            // 各科成绩 - 化学
+            document.getElementById('chemistryScore').textContent = student['化学'] || '-';
+            document.getElementById('chemistryGrade').textContent = student['化学_等级'] || '-';
+            document.getElementById('chemistryRankAll').textContent = student['化学_方向全体名次'] || '-';
+            document.getElementById('chemistryRankDistrict').textContent = student['化学_方向区县名次'] || '-';
+            document.getElementById('chemistryRankSchool').textContent = student['化学_方向校名次'] || '-';
+            document.getElementById('chemistryRankClass').textContent = student['化学_方向班名次'] || '-';
+            
+            // 各科成绩 - 生物
+            document.getElementById('biologyScore').textContent = student['生物'] || '-';
+            document.getElementById('biologyGrade').textContent = student['生物_等级'] || '-';
+            document.getElementById('biologyRankAll').textContent = student['生物_方向全体名次'] || '-';
+            document.getElementById('biologyRankDistrict').textContent = student['生物_方向区县名次'] || '-';
+            document.getElementById('biologyRankSchool').textContent = student['生物_方向校名次'] || '-';
+            document.getElementById('biologyRankClass').textContent = student['生物_方向班名次'] || '-';
+            
+            // 各科成绩 - 政治
+            document.getElementById('politicsScore').textContent = student['政治'] || '-';
+            document.getElementById('politicsGrade').textContent = student['政治_等级'] || '-';
+            document.getElementById('politicsRankAll').textContent = student['政治_方向全体名次'] || '-';
+            document.getElementById('politicsRankDistrict').textContent = student['政治_方向区县名次'] || '-';
+            document.getElementById('politicsRankSchool').textContent = student['政治_方向校名次'] || '-';
+            document.getElementById('politicsRankClass').textContent = student['政治_方向班名次'] || '-';
+            
+            // 各科成绩 - 地理
+            document.getElementById('geographyScore').textContent = student['地理'] || '-';
+            document.getElementById('geographyGrade').textContent = student['地理_等级'] || '-';
+            document.getElementById('geographyRankAll').textContent = student['地理_方向全体名次'] || '-';
+            document.getElementById('geographyRankDistrict').textContent = student['地理_方向区县名次'] || '-';
+            document.getElementById('geographyRankSchool').textContent = student['地理_方向校名次'] || '-';
+            document.getElementById('geographyRankClass').textContent = student['地理_方向班名次'] || '-';
+        }
+        
+        // 显示状态消息
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            
+            // 移除所有状态类
+            statusMessage.classList.remove('bg-blue-50', 'border-l-4', 'border-blue-400', 'text-blue-700',
+                                         'bg-green-50', 'border-l-4', 'border-green-400', 'text-green-700',
+                                         'bg-yellow-50', 'border-l-4', 'border-yellow-400', 'text-yellow-700',
+                                         'bg-red-50', 'border-l-4', 'border-red-400', 'text-red-700');
+            
+            // 添加对应状态类
+            switch(type) {
+                case 'loading':
+                    statusMessage.classList.add('bg-blue-50', 'border-l-4', 'border-blue-400', 'text-blue-700');
+                    break;
+                case 'success':
+                    statusMessage.classList.add('bg-green-50', 'border-l-4', 'border-green-400', 'text-green-700');
+                    break;
+                case 'warning':
+                    statusMessage.classList.add('bg-yellow-50', 'border-l-4', 'border-yellow-400', 'text-yellow-700');
+                    break;
+                case 'error':
+                    statusMessage.classList.add('bg-red-50', 'border-l-4', 'border-red-400', 'text-red-700');
+                    break;
+                default:
+                    // 默认无样式
+                    break;
+            }
+        }
+    </script>
+</body>
+</html>
+    
