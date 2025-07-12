@@ -78,7 +78,10 @@
                 <i class="fa fa-lightbulb-o text-warning mr-2"></i>
                 仅输入学生姓名或考生号即可进行查询，输入考生号可避免重名
             </p>
-            
+            <div class="flex gap-2 mb-4">
+                <button id="physicsBtn" class="bg-primary text-white px-4 py-2 rounded-lg">物理方向</button>
+                <button id="historyBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">历史方向</button>
+            </div>
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-grow relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -105,7 +108,6 @@
                         <span id="resultCount">0</span> 条记录
                     </div>
                 </div>
-                
                 <div class="overflow-x-auto scrollbar-hide">
                     <table class="w-full text-sm text-left text-gray-500">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
@@ -121,12 +123,9 @@
                                 <th class="px-6 py-3">班排名</th>
                             </tr>
                         </thead>
-                        <tbody id="resultTable" class="divide-y divide-gray-200">
-                            <!-- 结果将通过JavaScript动态填充 -->
-                        </tbody>
+                        <tbody id="resultTable" class="divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <!-- 详情卡片 -->
                 <div id="detailCard" class="p-6 border-t border-gray-200">
                     <div class="flex flex-col md:flex-row gap-6">
@@ -161,12 +160,10 @@
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="w-full md:w-2/3 bg-gray-50 rounded-lg p-4 card-hover">
                             <h3 class="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
                                 <i class="fa fa-bar-chart mr-2"></i>成绩详情
                             </h3>
-                            
                             <!-- 总分信息 -->
                             <div class="mb-6 p-4 bg-white rounded-lg shadow-sm">
                                 <h4 class="font-medium text-gray-700 mb-2">总分信息</h4>
@@ -197,7 +194,6 @@
                                     </div>
                                 </div>
                             </div>
-                            
                             <!-- 主科成绩 -->
                             <div class="mb-6">
                                 <h4 class="font-medium text-gray-700 mb-3">主科成绩</h4>
@@ -224,7 +220,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
                                     <!-- 数学 -->
                                     <div class="bg-white rounded-lg p-3 shadow-sm card-hover">
                                         <div class="text-sm font-medium text-gray-800 mb-2">数学</div>
@@ -247,7 +242,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
                                     <!-- 英语 -->
                                     <div class="bg-white rounded-lg p-3 shadow-sm card-hover">
                                         <div class="text-sm font-medium text-gray-800 mb-2">英语</div>
@@ -272,13 +266,10 @@
                                     </div>
                                 </div>
                             </div>
-                            
                             <!-- 选考科目 -->
                             <div>
                                 <h4 class="font-medium text-gray-700 mb-3">选考科目</h4>
-                                <div id="electiveSubjects" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- 选考科目将动态填充 -->
-                                </div>
+                                <div id="electiveSubjects" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
                             </div>
                         </div>
                     </div>
@@ -378,7 +369,7 @@
                 }
             }
         };
-        
+
         // DOM元素
         const queryInput = document.getElementById('queryInput');
         const searchButton = document.getElementById('searchButton');
@@ -386,13 +377,17 @@
         const resultCount = document.getElementById('resultCount');
         const dataStatus = document.getElementById('dataStatus');
         const fileInput = document.getElementById('fileInput');
-        
+        const physicsBtn = document.getElementById('physicsBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const detailCard = document.getElementById('detailCard');
+
         // 页面加载完成后自动加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
             showDisclaimer();
             loadXLSX();
+            initDirectionButtons();
         });
-        
+
         // 显示免责声明
         function showDisclaimer() {
             alert(`免责声明
@@ -401,13 +396,33 @@
 3. 本站所用数据库均是公开数据并且通过合法途径取得。
 4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。`);
         }
-        
+
+        // 初始化方向切换按钮
+        function initDirectionButtons() {
+            physicsBtn.addEventListener('click', () => {
+                currentDirection = 'physics';
+                physicsBtn.className = 'bg-primary text-white px-4 py-2 rounded-lg';
+                historyBtn.className = 'bg-gray-200 text-gray-800 px-4 py-2 rounded-lg';
+                searchData();
+            });
+            historyBtn.addEventListener('click', () => {
+                currentDirection = 'history';
+                historyBtn.className = 'bg-primary text-white px-4 py-2 rounded-lg';
+                physicsBtn.className = 'bg-gray-200 text-gray-800 px-4 py-2 rounded-lg';
+                searchData();
+            });
+        }
+
         // 加载Excel文件
         async function loadXLSX() {
             try {
                 const response = await fetch('./data.xlsx');
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
+
+                if (!zip.file("xl/sharedStrings.xml") || !zip.file("xl/workbook.xml")) {
+                    throw new Error('无效的 Excel 文件格式');
+                }
 
                 const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
                 const sharedStrings = parseSharedStrings(sharedStringsXML);
@@ -422,26 +437,20 @@
                     if (sheetFile) {
                         const sheetXML = await sheetFile.async("string");
                         const sheetData = parseSheet(sheetXML, sharedStrings);
-                        combinedData.push(...sheetData);
+                        combinedData.push(...sheetData.map(row => ({
+                            row,
+                            direction: determineDirection(row)
+                        })));
                     } else {
                         console.warn(`未找到文件：${sheetPath}`);
                     }
                 }
 
-                // 自动选择第一个学生显示详情
                 if (combinedData.length > 0) {
-                    const firstStudent = {
-                        row: combinedData[0],
-                        direction: 'physics' // 默认物理方向，实际应根据数据判断
-                    };
-                    
-                    // 初始化搜索界面
                     initSearchInterface();
-                    
-                    // 自动显示第一个学生的详情
                     setTimeout(() => {
                         document.getElementById('resultSection').classList.remove('hidden');
-                        showStudentDetail(firstStudent);
+                        showStudentDetail(combinedData[0]);
                     }, 500);
                 } else {
                     throw new Error('Excel文件中没有找到有效数据');
@@ -451,14 +460,20 @@
                 showLoadFailed();
             }
         }
-        
+
+        // 确定学生方向
+        function determineDirection(row) {
+            const elective = row[4] || '';
+            return elective.includes('历史') ? 'history' : 'physics';
+        }
+
         // 解析共享字符串
         function parseSharedStrings(xml) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
             return Array.from(doc.getElementsByTagName("t")).map(node => node.textContent);
         }
-        
+
         // 获取工作表名称
         function getSheetNames(xml) {
             const parser = new DOMParser();
@@ -468,13 +483,12 @@
                 file: `sheet${sheet.getAttribute("sheetId")}.xml`
             }));
         }
-        
+
         // 解析工作表
         function parseSheet(xml, sharedStrings) {
             const parser = new DOMParser();
             const doc = parser.parseFromString(xml, "application/xml");
             const rows = doc.getElementsByTagName("row");
-            
             return Array.from(rows).map(row => {
                 return Array.from(row.getElementsByTagName("c")).map(cell => {
                     const type = cell.getAttribute("t");
@@ -483,25 +497,18 @@
                 });
             });
         }
-        
+
         // 初始化搜索界面
         function initSearchInterface() {
-            // 更新状态
             dataStatus.textContent = `数据已加载 (${combinedData.length}条记录)`;
             dataStatus.className = 'text-green-600 font-medium';
-            
-            // 启用搜索框和按钮
             queryInput.disabled = false;
             queryInput.placeholder = "输入学生姓名或考生号";
             searchButton.innerHTML = '<i class="fa fa-search-plus"></i><span>查询成绩</span>';
             searchButton.className = 'bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2';
             searchButton.removeAttribute('disabled');
             searchButton.removeAttribute('cursor-not-allowed');
-            
-            // 隐藏加载状态，显示搜索界面
             document.getElementById('loadingSection').classList.add('hidden');
-            
-            // 绑定事件
             searchButton.addEventListener('click', searchData);
             queryInput.addEventListener('keypress', e => e.key === 'Enter' && searchData());
             document.getElementById('manualLoadButton').addEventListener('click', () => fileInput.click());
@@ -511,34 +518,31 @@
                 queryInput.focus();
             });
             fileInput.addEventListener('change', handleManualFileSelect);
-            
             queryInput.focus();
         }
-        
+
         // 显示加载失败界面
         function showLoadFailed() {
             document.getElementById('loadingSection').classList.add('hidden');
             document.getElementById('loadFailedSection').classList.remove('hidden');
         }
-        
+
         // 处理手动选择文件
         async function handleManualFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
             document.getElementById('loadFailedSection').classList.add('hidden');
             document.getElementById('loadingSection').classList.remove('hidden');
-            
             try {
                 const arrayBuffer = await readFileAsArrayBuffer(file);
                 const zip = await JSZip.loadAsync(arrayBuffer);
-
+                if (!zip.file("xl/sharedStrings.xml") || !zip.file("xl/workbook.xml")) {
+                    throw new Error('无效的 Excel 文件格式');
+                }
                 const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
                 const sharedStrings = parseSharedStrings(sharedStringsXML);
-
                 const workbookXML = await zip.file("xl/workbook.xml").async("string");
                 const sheetNames = getSheetNames(workbookXML);
-
                 combinedData = [];
                 for (const sheet of sheetNames) {
                     const sheetPath = `xl/worksheets/${sheet.file}`;
@@ -546,26 +550,19 @@
                     if (sheetFile) {
                         const sheetXML = await sheetFile.async("string");
                         const sheetData = parseSheet(sheetXML, sharedStrings);
-                        combinedData.push(...sheetData);
+                        combinedData.push(...sheetData.map(row => ({
+                            row,
+                            direction: determineDirection(row)
+                        })));
                     } else {
                         console.warn(`未找到文件：${sheetPath}`);
                     }
                 }
-
-                // 自动选择第一个学生显示详情
                 if (combinedData.length > 0) {
-                    const firstStudent = {
-                        row: combinedData[0],
-                        direction: 'physics' // 默认物理方向，实际应根据数据判断
-                    };
-                    
-                    // 初始化搜索界面
                     initSearchInterface();
-                    
-                    // 自动显示第一个学生的详情
                     setTimeout(() => {
                         document.getElementById('resultSection').classList.remove('hidden');
-                        showStudentDetail(firstStudent);
+                        showStudentDetail(combinedData[0]);
                     }, 500);
                 } else {
                     throw new Error('Excel文件中没有找到有效数据');
@@ -575,7 +572,7 @@
                 showLoadFailed();
             }
         }
-        
+
         // 读取文件为ArrayBuffer
         function readFileAsArrayBuffer(file) {
             return new Promise((resolve, reject) => {
@@ -585,7 +582,7 @@
                 reader.readAsArrayBuffer(file);
             });
         }
-        
+
         // 搜索数据
         function searchData() {
             const query = queryInput.value.trim();
@@ -593,39 +590,39 @@
                 alert("请输入学生姓名或考生号");
                 return;
             }
-            
-            // 根据方向筛选数据
-            const results = combinedData.filter(row => {
-                return row[columnMaps[currentDirection].base.name]?.includes(query) || 
-                       row[columnMaps[currentDirection].base.examId]?.includes(query);
+            const results = combinedData.filter(item => {
+                const map = columnMaps[item.direction];
+                const queryLower = query.toLowerCase();
+                return item.row[map.base.name]?.toLowerCase().includes(queryLower) || 
+                       item.row[map.base.examId]?.includes(query);
             });
-            
             if (results.length > 0) {
                 displayResults(results);
                 document.getElementById('noResultSection').classList.add('hidden');
                 document.getElementById('resultSection').classList.remove('hidden');
-                
-                // 自动显示第一个结果的详情
                 if (results.length > 0) {
-                    showStudentDetail({row: results[0], direction: currentDirection});
+                    showStudentDetail(results[0]);
                 }
             } else {
                 document.getElementById('resultSection').classList.add('hidden');
                 document.getElementById('noResultSection').classList.remove('hidden');
             }
         }
-        
+
         // 显示搜索结果
         function displayResults(results) {
             resultTable.innerHTML = "";
             resultCount.textContent = results.length;
-            
-            results.forEach((row, index) => {
-                const map = columnMaps[currentDirection];
+            results.forEach((item, index) => {
+                const row = item.row;
+                const map = columnMaps[item.direction];
                 const tr = document.createElement('tr');
                 tr.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
-                tr.onclick = () => showStudentDetail({row, direction: currentDirection});
-                
+                tr.onclick = () => {
+                    document.querySelectorAll('#resultTable tr').forEach(t => t.classList.remove('bg-blue-100'));
+                    tr.classList.add('bg-blue-100');
+                    showStudentDetail(item);
+                };
                 tr.innerHTML = `
                     <td class="px-6 py-4">${row[map.base.school] || '-'}</td>
                     <td class="px-6 py-4">${row[map.base.class] || '-'}</td>
@@ -637,16 +634,16 @@
                     <td class="px-6 py-4">${row[map.subjects.total.rankSchool] || '-'}</td>
                     <td class="px-6 py-4">${row[map.subjects.total.rankClass] || '-'}</td>
                 `;
-                
                 resultTable.appendChild(tr);
             });
         }
-        
+
         // 显示学生详情
         function showStudentDetail(item) {
             const row = item.row;
             const map = columnMaps[item.direction];
-            
+            console.log('选科数据:', row[map.base.elective]);
+
             // 填充基本信息
             document.getElementById('detailName').textContent = row[map.base.name] || '-';
             document.getElementById('detailExamId').textContent = row[map.base.examId] || '-';
@@ -654,58 +651,57 @@
             document.getElementById('detailClass').textContent = row[map.base.class] || '-';
             document.getElementById('detailSubject').textContent = row[map.base.elective] || '-';
             document.getElementById('detailDirection').textContent = map.base.direction;
-            
+
             // 填充总分信息
             document.getElementById('totalScore').textContent = row[map.subjects.total.score] || '-';
             document.getElementById('totalRankCity').textContent = row[map.subjects.total.rankCity] || '-';
             document.getElementById('totalRankSchool').textContent = row[map.subjects.total.rankSchool] || '-';
             document.getElementById('totalRankClass').textContent = row[map.subjects.total.rankClass] || '-';
-            
+
             // 填充主科成绩
             document.getElementById('chineseScore').textContent = row[map.subjects.chinese.score] || '-';
             document.getElementById('chineseRankCity').textContent = row[map.subjects.chinese.rankCity] || '-';
             document.getElementById('chineseRankSchool').textContent = row[map.subjects.chinese.rankSchool] || '-';
             document.getElementById('chineseRankClass').textContent = row[map.subjects.chinese.rankClass] || '-';
-            
             document.getElementById('mathScore').textContent = row[map.subjects.math.score] || '-';
             document.getElementById('mathRankCity').textContent = row[map.subjects.math.rankCity] || '-';
             document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool] || '-';
             document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
-            
             document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
             document.getElementById('englishRankCity').textContent = row[map.subjects.english.rankCity] || '-';
             document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';
             document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
-            
+
             // 处理选考科目
             const electiveSubjectsContainer = document.getElementById('electiveSubjects');
             electiveSubjectsContainer.innerHTML = '';
-            
-            // 解析选科信息
-            const electiveSubjects = (row[map.base.elective] || '').split('+').map(s => s.trim()).filter(Boolean);
-            
-            // 添加所有选考科目，包括方向主科
+            const electiveSubjects = (row[map.base.elective] || '')
+                .split(/[\+,; ]+/).map(s => s.trim()).filter(Boolean);
+            console.log('解析后的选科:', electiveSubjects);
             const mainSubject = map.base.direction === '物理' ? '物理' : '历史';
             const allSubjects = [mainSubject, ...electiveSubjects].filter((s, i, arr) => arr.indexOf(s) === i);
-            
+            console.log('最终科目列表:', allSubjects);
+
             allSubjects.forEach(subject => {
                 const subjectKey = getSubjectKey(subject);
                 if (subjectKey) {
                     addElectiveSubjectCard(subjectKey, subject, row, map);
+                } else {
+                    console.warn(`未知科目: ${subject}`);
                 }
             });
-            
-            // 显示详情卡片并滚动到视图
+
             detailCard.classList.remove('hidden');
             detailCard.classList.add('fade-in');
             detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        
+
         // 根据科目名称获取科目键
         function getSubjectKey(subjectName) {
             const subjectMap = {
                 '物理': 'physics',
                 '化学': 'chemistry',
+                '化學': 'chemistry',
                 '生物': 'biology',
                 '政治': 'politics',
                 '地理': 'geography',
@@ -714,26 +710,20 @@
             };
             return subjectMap[subjectName] || null;
         }
-        
+
         // 添加选考科目卡片
         function addElectiveSubjectCard(subjectKey, subjectName, row, map) {
             const subjectData = map.subjects[subjectKey];
             if (!subjectData) return;
-            
             const container = document.getElementById('electiveSubjects');
-            
             const card = document.createElement('div');
             card.className = 'bg-white rounded-lg p-3 shadow-sm card-hover';
-            
             const subjectTitle = document.createElement('div');
             subjectTitle.className = 'text-sm font-medium text-gray-800 mb-2';
             subjectTitle.textContent = subjectName;
             card.appendChild(subjectTitle);
-            
             const grid = document.createElement('div');
             grid.className = 'grid grid-cols-2 gap-2 text-sm';
-            
-            // 赋分
             const scoreDiv = document.createElement('div');
             const scoreLabel = document.createElement('div');
             scoreLabel.className = 'text-xs text-gray-500';
@@ -744,8 +734,6 @@
             scoreDiv.appendChild(scoreLabel);
             scoreDiv.appendChild(scoreValue);
             grid.appendChild(scoreDiv);
-            
-            // 原始分
             const rawScoreDiv = document.createElement('div');
             const rawScoreLabel = document.createElement('div');
             rawScoreLabel.className = 'text-xs text-gray-500';
@@ -756,8 +744,6 @@
             rawScoreDiv.appendChild(rawScoreLabel);
             rawScoreDiv.appendChild(rawScoreValue);
             grid.appendChild(rawScoreDiv);
-            
-            // 等级
             const levelDiv = document.createElement('div');
             const levelLabel = document.createElement('div');
             levelLabel.className = 'text-xs text-gray-500';
@@ -768,8 +754,6 @@
             levelDiv.appendChild(levelLabel);
             levelDiv.appendChild(levelValue);
             grid.appendChild(levelDiv);
-            
-            // 市排名
             const rankDiv = document.createElement('div');
             const rankLabel = document.createElement('div');
             rankLabel.className = 'text-xs text-gray-500';
@@ -779,7 +763,6 @@
             rankDiv.appendChild(rankLabel);
             rankDiv.appendChild(rankValue);
             grid.appendChild(rankDiv);
-            
             card.appendChild(grid);
             container.appendChild(card);
         }
