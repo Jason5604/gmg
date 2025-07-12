@@ -3,24 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>梅州兴宁期末联考高一查分系统 @叶天哲</title>
+    <title>学生成绩查询系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#165DFF',
-                        secondary: '#36D399',
-                        neutral: '#F3F4F6',
-                        warning: '#FF9F1C',
+                        primary: '#1e40af',
+                        secondary: '#3b82f6',
+                        accent: '#60a5fa',
+                        neutral: '#f1f5f9',
+                        'neutral-dark': '#334155',
                     },
                     fontFamily: {
-                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
                     },
-                }
+                    boxShadow: {
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }
+                },
             }
         }
     </script>
@@ -29,781 +34,619 @@
             .content-auto {
                 content-visibility: auto;
             }
-            .scrollbar-hide::-webkit-scrollbar {
-                display: none;
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
             }
-            .scrollbar-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
-            .card-hover {
+            .transition-all-300 {
                 transition: all 0.3s ease;
             }
-            .card-hover:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            .scale-hover {
+                transition: transform 0.3s ease;
             }
-            .fade-in {
-                animation: fadeIn 0.5s ease-in-out;
+            .scale-hover:hover {
+                transform: scale(1.02);
             }
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
+            .table-cell-padding {
+                padding: 0.75rem 1rem;
+            }
+            .blur-bg {
+                backdrop-filter: blur(8px);
             }
         }
     </style>
 </head>
-<body class="font-inter bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 min-h-screen flex flex-col">
     <!-- 导航栏 -->
-    <header class="bg-white shadow-md sticky top-0 z-50 transition-all duration-300">
-        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <i class="fa fa-graduation-cap text-primary text-2xl"></i>
-                <h1 class="text-xl md:text-2xl font-bold text-gray-800">梅州兴宁期末联考高一查分系统 @叶天哲</h1>
+    <nav class="bg-gradient-primary text-white shadow-md">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-graduation-cap text-2xl"></i>
+                <h1 class="text-xl md:text-2xl font-bold text-shadow">学生成绩查询系统</h1>
             </div>
             <div class="hidden md:flex items-center space-x-6">
-                <span class="text-sm text-gray-600">
-                    <i class="fa fa-database mr-1"></i>
-                    <span id="dataStatus">正在加载数据...</span>
-                </span>
+                <a href="#" class="hover:text-accent transition-all-300">首页</a>
+                <a href="#" class="hover:text-accent transition-all-300">帮助</a>
+                <a href="#" class="hover:text-accent transition-all-300">关于</a>
+            </div>
+            <button class="md:hidden text-white text-xl">
+                <i class="fa fa-bars"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <!-- 欢迎信息卡片 -->
+        <div class="bg-white rounded-xl shadow-card p-6 mb-8 transform transition-all duration-300 hover:shadow-card-hover">
+            <h2 class="text-2xl font-bold text-neutral-dark mb-2">欢迎使用成绩查询系统</h2>
+            <p class="text-gray-600 mb-4">系统正在自动加载本地data.xlsx文件，请稍候...</p>
+            
+            <!-- 文件上传区域 -->
+            <div id="fileUploadContainer" class="mb-6 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center transition-all duration-300 hover:border-secondary hidden">
+                <input type="file" id="fileUpload" accept=".xlsx" class="hidden">
+                <label for="fileUpload" class="cursor-pointer">
+                    <i class="fa fa-file-excel-o text-4xl text-gray-400 mb-3"></i>
+                    <p class="text-gray-500 mb-2">点击或拖拽文件到此处上传</p>
+                    <p class="text-sm text-gray-400">支持格式: .xlsx</p>
+                </label>
+            </div>
+            
+            <!-- 状态提示 -->
+            <div id="statusMessage" class="mb-4 p-4 rounded-lg"></div>
+        </div>
+
+        <!-- 查询区域 -->
+        <div id="searchContainer" class="bg-white rounded-xl shadow-card p-6 mb-8 hidden">
+            <h3 class="text-xl font-semibold text-neutral-dark mb-4">成绩查询</h3>
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <div class="flex-grow">
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-1">姓名或考号</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa fa-search text-gray-400"></i>
+                        </div>
+                        <input type="text" id="searchInput" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-all duration-300" placeholder="请输入姓名或考号">
+                    </div>
+                </div>
+                <div class="flex items-end">
+                    <button id="searchButton" class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-all duration-300 flex items-center justify-center">
+                        <i class="fa fa-search mr-2"></i>
+                        <span>查询</span>
+                    </button>
+                </div>
             </div>
         </div>
-    </header>
 
-    <!-- 主要内容 -->
-    <main class="flex-grow container mx-auto px-4 py-8">
-        <!-- 搜索区域 -->
-        <section class="bg-white rounded-xl shadow-lg p-6 mb-8 transform transition-all duration-300 hover:shadow-xl">
-            <p class="text-gray-600 mb-4 text-sm md:text-base">
-                <i class="fa fa-lightbulb-o text-warning mr-2"></i>
-                仅输入学生姓名或考生号即可进行查询，输入考生号可避免重名
-            </p>
-            
-            <div class="flex flex-col md:flex-row gap-4">
-                <div class="flex-grow relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i class="fa fa-search text-gray-400"></i>
+        <!-- 结果展示区域 -->
+        <div id="resultContainer" class="hidden">
+            <!-- 基本信息卡片 -->
+            <div class="bg-white rounded-xl shadow-card p-6 mb-6 transform transition-all duration-300 hover:shadow-card-hover">
+                <h3 class="text-xl font-semibold text-neutral-dark mb-4 flex items-center">
+                    <i class="fa fa-user-circle-o mr-2 text-secondary"></i>
+                    学生信息
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">学校</p>
+                        <p id="school" class="text-lg font-medium text-neutral-dark"></p>
                     </div>
-                    <input type="text" id="queryInput" 
-                        class="block w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-300"
-                        placeholder="输入学生姓名或考生号" disabled>
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">班级</p>
+                        <p id="class" class="text-lg font-medium text-neutral-dark"></p>
+                    </div>
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">考号</p>
+                        <p id="examNumber" class="text-lg font-medium text-neutral-dark"></p>
+                    </div>
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">姓名</p>
+                        <p id="name" class="text-lg font-medium text-neutral-dark"></p>
+                    </div>
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">选科</p>
+                        <p id="subjectSelection" class="text-lg font-medium text-neutral-dark"></p>
+                    </div>
+                    <div class="bg-neutral rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-1">方向</p>
+                        <p id="direction" class="text-lg font-medium text-neutral-dark"></p>
+                    </div>
                 </div>
-                <button id="searchButton" 
-                    class="bg-gray-400 text-white font-medium py-3 px-6 rounded-lg cursor-not-allowed flex items-center justify-center gap-2">
-                    <i class="fa fa-search-plus"></i>
-                    <span>请等待数据加载</span>
-                </button>
             </div>
-        </section>
 
-        <!-- 结果表格 -->
-        <section id="resultSection" class="hidden">
-            <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-                <div class="bg-gray-50 px-6 py-3 border-b border-gray-200 flex justify-between items-center">
-                    <h2 class="font-semibold text-gray-800">查询结果</h2>
-                    <div class="text-sm text-gray-600">
-                        <span id="resultCount">0</span> 条记录
+            <!-- 总分信息卡片 -->
+            <div class="bg-white rounded-xl shadow-card p-6 mb-6 transform transition-all duration-300 hover:shadow-card-hover">
+                <h3 class="text-xl font-semibold text-neutral-dark mb-4 flex items-center">
+                    <i class="fa fa-bar-chart mr-2 text-secondary"></i>
+                    总分信息
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 总分(赋分) -->
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <div class="bg-blue-50 p-3">
+                            <h4 class="font-medium text-neutral-dark"><span id="directionText">物理</span>总分(赋分)</h4>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600">分数</span>
+                                <span id="totalScaled" class="text-lg font-semibold text-primary"></span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span class="text-gray-500">全体名次:</span>
+                                    <span id="rankScaledAll" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">区县名次:</span>
+                                    <span id="rankScaledDistrict" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">校名次:</span>
+                                    <span id="rankScaledSchool" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">班名次:</span>
+                                    <span id="rankScaledClass" class="font-medium text-neutral-dark"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 总分 -->
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <div class="bg-blue-50 p-3">
+                            <h4 class="font-medium text-neutral-dark"><span id="directionText2">物理</span>总分</h4>
+                        </div>
+                        <div class="p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-gray-600">分数</span>
+                                <span id="total" class="text-lg font-semibold text-primary"></span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <span class="text-gray-500">全体名次:</span>
+                                    <span id="rankAll" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">区县名次:</span>
+                                    <span id="rankDistrict" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">校名次:</span>
+                                    <span id="rankSchool" class="font-medium text-neutral-dark"></span>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500">班名次:</span>
+                                    <span id="rankClass" class="font-medium text-neutral-dark"></span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="overflow-x-auto scrollbar-hide">
-                    <table class="w-full text-sm text-left text-gray-500">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+            </div>
+
+            <!-- 各科成绩卡片 -->
+            <div class="bg-white rounded-xl shadow-card p-6 mb-6 transform transition-all duration-300 hover:shadow-card-hover">
+                <h3 class="text-xl font-semibold text-neutral-dark mb-4 flex items-center">
+                    <i class="fa fa-book mr-2 text-secondary"></i>
+                    各科成绩详情
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3">学校</th>
-                                <th class="px-6 py-3">班级</th>
-                                <th class="px-6 py-3">考号</th>
-                                <th class="px-6 py-3">姓名</th>
-                                <th class="px-6 py-3">选科</th>
-                                <th class="px-6 py-3">总分(赋分)</th>
-                                <th class="px-6 py-3">市排名</th>
-                                <th class="px-6 py-3">校排名</th>
-                                <th class="px-6 py-3">班排名</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">科目</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">全体名次</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">区县名次</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">校名次</th>
+                                <th scope="col" class="table-cell-padding text-left text-xs font-medium text-gray-500 uppercase tracking-wider">班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="resultTable" class="divide-y divide-gray-200">
-                            <!-- 结果将通过JavaScript动态填充 -->
+                        <tbody class="bg-white divide-y divide-gray-200" id="subjectsTable">
+                            <!-- 语文 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-pencil text-blue-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">语文</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="chineseScore"></span></td>
+                                <td class="table-cell-padding"><span id="chineseGrade"></span></td>
+                                <td class="table-cell-padding"><span id="chineseRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="chineseRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="chineseRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="chineseRankClass"></span></td>
+                            </tr>
+                            <!-- 数学 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-calculator text-green-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">数学</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="mathScore"></span></td>
+                                <td class="table-cell-padding"><span id="mathGrade"></span></td>
+                                <td class="table-cell-padding"><span id="mathRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="mathRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="mathRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="mathRankClass"></span></td>
+                            </tr>
+                            <!-- 英语 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-language text-yellow-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">英语</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="englishScore"></span></td>
+                                <td class="table-cell-padding"><span id="englishGrade"></span></td>
+                                <td class="table-cell-padding"><span id="englishRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="englishRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="englishRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="englishRankClass"></span></td>
+                            </tr>
+                            <!-- 物理/历史 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-flask text-purple-600"></i>
+                                        </div>
+                                        <span id="mainSubject" class="font-medium text-neutral-dark">物理</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="mainSubjectScore"></span></td>
+                                <td class="table-cell-padding"><span id="mainSubjectGrade"></span></td>
+                                <td class="table-cell-padding"><span id="mainSubjectRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="mainSubjectRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="mainSubjectRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="mainSubjectRankClass"></span></td>
+                            </tr>
+                            <!-- 化学 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-flask text-red-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">化学</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="chemistryScore"></span></td>
+                                <td class="table-cell-padding"><span id="chemistryGrade"></span></td>
+                                <td class="table-cell-padding"><span id="chemistryRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="chemistryRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="chemistryRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="chemistryRankClass"></span></td>
+                            </tr>
+                            <!-- 生物 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-teal-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-leaf text-teal-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">生物</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="biologyScore"></span></td>
+                                <td class="table-cell-padding"><span id="biologyGrade"></span></td>
+                                <td class="table-cell-padding"><span id="biologyRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="biologyRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="biologyRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="biologyRankClass"></span></td>
+                            </tr>
+                            <!-- 政治 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-indigo-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-university text-indigo-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">政治</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="politicsScore"></span></td>
+                                <td class="table-cell-padding"><span id="politicsGrade"></span></td>
+                                <td class="table-cell-padding"><span id="politicsRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="politicsRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="politicsRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="politicsRankClass"></span></td>
+                            </tr>
+                            <!-- 地理 -->
+                            <tr class="hover:bg-gray-50 transition-colors duration-200">
+                                <td class="table-cell-padding">
+                                    <div class="flex items-center">
+                                        <div class="h-8 w-8 bg-amber-100 rounded-full flex items-center justify-center mr-3">
+                                            <i class="fa fa-globe text-amber-600"></i>
+                                        </div>
+                                        <span class="font-medium text-neutral-dark">地理</span>
+                                    </div>
+                                </td>
+                                <td class="table-cell-padding"><span id="geographyScore"></span></td>
+                                <td class="table-cell-padding"><span id="geographyGrade"></span></td>
+                                <td class="table-cell-padding"><span id="geographyRankAll"></span></td>
+                                <td class="table-cell-padding"><span id="geographyRankDistrict"></span></td>
+                                <td class="table-cell-padding"><span id="geographyRankSchool"></span></td>
+                                <td class="table-cell-padding"><span id="geographyRankClass"></span></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- 详情卡片 -->
-                <div id="detailCard" class="p-6 border-t border-gray-200">
-                    <div class="flex flex-col md:flex-row gap-6">
-                        <div class="w-full md:w-1/3 bg-gray-50 rounded-lg p-4 card-hover">
-                            <h3 class="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
-                                <i class="fa fa-user-circle mr-2"></i>基本信息
-                            </h3>
-                            <div class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">姓名:</span>
-                                    <span id="detailName" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">考号:</span>
-                                    <span id="detailExamId" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">学校:</span>
-                                    <span id="detailSchool" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">班级:</span>
-                                    <span id="detailClass" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">选科:</span>
-                                    <span id="detailSubject" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">方向:</span>
-                                    <span id="detailDirection" class="font-medium text-gray-800"></span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="w-full md:w-2/3 bg-gray-50 rounded-lg p-4 card-hover">
-                            <h3 class="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
-                                <i class="fa fa-bar-chart mr-2"></i>成绩详情
-                            </h3>
-                            
-                            <!-- 总分信息 -->
-                            <div class="mb-6 p-4 bg-white rounded-lg shadow-sm">
-                                <h4 class="font-medium text-gray-700 mb-2">总分信息</h4>
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div>
-                                        <div class="text-xs text-gray-500 mb-1">总分(赋分)</div>
-                                        <div class="text-lg font-semibold text-primary">
-                                            <span id="totalScore"></span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs text-gray-500 mb-1">市排名</div>
-                                        <div class="text-lg font-semibold text-gray-800">
-                                            <span id="totalRankCity"></span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs text-gray-500 mb-1">校排名</div>
-                                        <div class="text-lg font-semibold text-gray-800">
-                                            <span id="totalRankSchool"></span>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs text-gray-500 mb-1">班排名</div>
-                                        <div class="text-lg font-semibold text-gray-800">
-                                            <span id="totalRankClass"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 主科成绩 -->
-                            <div class="mb-6">
-                                <h4 class="font-medium text-gray-700 mb-3">主科成绩</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <!-- 语文 -->
-                                    <div class="bg-white rounded-lg p-3 shadow-sm card-hover">
-                                        <div class="text-sm font-medium text-gray-800 mb-2">语文</div>
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <div class="text-xs text-gray-500">分数</div>
-                                                <div class="font-semibold" id="chineseScore"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">市排名</div>
-                                                <div id="chineseRankCity"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">校排名</div>
-                                                <div id="chineseRankSchool"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">班排名</div>
-                                                <div id="chineseRankClass"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 数学 -->
-                                    <div class="bg-white rounded-lg p-3 shadow-sm card-hover">
-                                        <div class="text-sm font-medium text-gray-800 mb-2">数学</div>
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <div class="text-xs text-gray-500">分数</div>
-                                                <div class="font-semibold" id="mathScore"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">市排名</div>
-                                                <div id="mathRankCity"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">校排名</div>
-                                                <div id="mathRankSchool"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">班排名</div>
-                                                <div id="mathRankClass"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- 英语 -->
-                                    <div class="bg-white rounded-lg p-3 shadow-sm card-hover">
-                                        <div class="text-sm font-medium text-gray-800 mb-2">英语</div>
-                                        <div class="grid grid-cols-2 gap-2 text-sm">
-                                            <div>
-                                                <div class="text-xs text-gray-500">分数</div>
-                                                <div class="font-semibold" id="englishScore"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">市排名</div>
-                                                <div id="englishRankCity"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">校排名</div>
-                                                <div id="englishRankSchool"></div>
-                                            </div>
-                                            <div>
-                                                <div class="text-xs text-gray-500">班排名</div>
-                                                <div id="englishRankClass"></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- 选考科目 -->
-                            <div>
-                                <h4 class="font-medium text-gray-700 mb-3">选考科目</h4>
-                                <div id="electiveSubjects" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <!-- 选考科目将动态填充 -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
-        </section>
-
-        <!-- 数据加载状态 -->
-        <section id="loadingSection" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary/30 border-t-primary"></div>
-            <p class="mt-4 text-gray-600">正在加载数据库，请稍候...</p>
-        </section>
-
-        <!-- 数据加载失败提示 -->
-        <section id="loadFailedSection" class="hidden text-center py-12">
-            <div class="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-                <div class="text-warning text-5xl mb-4">
-                    <i class="fa fa-exclamation-circle"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-800 mb-2">数据加载失败</h2>
-                <p class="text-gray-600 mb-6">数据库加载失败</p>
-                <button id="manualLoadButton" 
-                    class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 mx-auto">
-                    <i class="fa fa-upload"></i>
-                    <span>手动选择文件</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- 无结果提示 -->
-        <section id="noResultSection" class="hidden text-center py-12">
-            <div class="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-                <div class="text-gray-400 text-5xl mb-4">
-                    <i class="fa fa-search"></i>
-                </div>
-                <h2 class="text-xl font-semibold text-gray-800 mb-2">未找到匹配结果</h2>
-                <p class="text-gray-600 mb-6">请检查输入的姓名或考号是否正确</p>
-                <button id="newSearchButton" 
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-3 px-6 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto">
-                    <i class="fa fa-refresh"></i>
-                    <span>重新搜索</span>
-                </button>
-            </div>
-        </section>
+        </div>
     </main>
 
-    <!-- 页脚 -->
-    <footer class="bg-gray-800 text-white py-8">
+    <!-- 免责声明 -->
+    <div class="bg-neutral-dark text-white py-6">
         <div class="container mx-auto px-4">
-            <div class="text-center text-gray-400 text-sm">
-                <p>© 2025 梅州兴宁期末联考高一查分系统 @叶天哲. 保留所有权利.</p>
+            <h3 class="text-xl font-semibold mb-4">免责声明</h3>
+            <div class="space-y-2 text-gray-300">
+                <p>1. 本站用途仅供学生查询联考成绩，无任何盈利收费行为。</p>
+                <p>2. 本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。</p>
+                <p>3. 本站所用数据库均是公开数据并且通过合法途径取得。</p>
+                <p>4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。</p>
             </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-900 text-white py-6">
+        <div class="container mx-auto px-4 text-center">
+            <p>© 2025 学生成绩查询系统 - 版权所有</p>
         </div>
     </footer>
 
-    <!-- 文件选择器 -->
-    <input type="file" id="fileInput" accept=".xlsx" class="hidden">
-
     <script>
-        // 全局变量
-        let combinedData = [];
+        // 全局变量存储解析后的学生数据
+        let studentData = [];
         
-        // 物理方向和历史方向的字段索引映射表
-        const columnMaps = {
-            physics: {
-                base: {
-                    school: 0, class: 1, examId: 2, name: 3, elective: 4, direction: '物理'
-                },
-                subjects: {
-                    total: { score: 5, rankCity: 6, rankSchool: 8, rankClass: 9 },
-                    chinese: { score: 15, rankCity: 16, rankSchool: 18, rankClass: 19 },
-                    math: { score: 20, rankCity: 21, rankSchool: 23, rankClass: 24 },
-                    english: { score: 25, rankCity: 26, rankSchool: 28, rankClass: 29 },
-                    physics: { score: 30, rankCity: 31, rankSchool: 33, rankClass: 34 },
-                    chemistry: { score: 35, rankCity: 36, rankSchool: 38, rankClass: 39, rawScore: 40, level: 41 },
-                    biology: { score: 46, rankCity: 47, rankSchool: 49, rankClass: 50, rawScore: 51, level: 52 },
-                    politics: { score: 57, rankCity: 58, rankSchool: 60, rankClass: 61, rawScore: 62, level: 63 },
-                    geography: { score: 68, rankCity: 69, rankSchool: 71, rankClass: 72, rawScore: 73, level: 74 },
-                    minorLang: { score: 79, rankCity: 81, rankSchool: 83, rankClass: 84, level: 80 }
-                }
-            },
-            history: {
-                base: {
-                    school: 0, class: 1, examId: 2, name: 3, elective: 4, direction: '历史'
-                },
-                subjects: {
-                    total: { score: 5, rankCity: 6, rankSchool: 8, rankClass: 9 },
-                    chinese: { score: 15, rankCity: 16, rankSchool: 18, rankClass: 19 },
-                    math: { score: 20, rankCity: 21, rankSchool: 23, rankClass: 24 },
-                    english: { score: 25, rankCity: 26, rankSchool: 28, rankClass: 29 },
-                    history: { score: 30, rankCity: 31, rankSchool: 33, rankClass: 34 },
-                    chemistry: { score: 35, rankCity: 36, rankSchool: 38, rankClass: 39, rawScore: 40, level: 41 },
-                    biology: { score: 46, rankCity: 47, rankSchool: 49, rankClass: 50, rawScore: 51, level: 52 },
-                    politics: { score: 57, rankCity: 58, rankSchool: 60, rankClass: 61, rawScore: 62, level: 63 },
-                    geography: { score: 68, rankCity: 69, rankSchool: 71, rankClass: 72, rawScore: 73, level: 74 },
-                    minorLang: { score: 79, rankCity: 81, rankSchool: 83, rankClass: 84, level: 80 }
-                }
-            }
-        };
-        
-        // DOM元素
-        const queryInput = document.getElementById('queryInput');
+        // DOM 元素
+        const fileUpload = document.getElementById('fileUpload');
+        const fileUploadContainer = document.getElementById('fileUploadContainer');
+        const statusMessage = document.getElementById('statusMessage');
+        const searchContainer = document.getElementById('searchContainer');
+        const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
-        const resultTable = document.getElementById('resultTable');
-        const resultCount = document.getElementById('resultCount');
-        const dataStatus = document.getElementById('dataStatus');
-        const fileInput = document.getElementById('fileInput');
+        const resultContainer = document.getElementById('resultContainer');
         
-        // 页面加载完成后自动加载data.xlsx
+        // 页面加载完成后自动尝试加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
-            showDisclaimer();
-            loadXLSX();
+            showStatus('正在自动加载本地data.xlsx文件...', 'loading');
+            
+            // 由于浏览器安全限制，无法直接访问本地文件系统
+            // 这里模拟自动加载失败，并提示用户
+            setTimeout(() => {
+                showStatus('数据库加载失败，请手动上传data.xlsx文件', 'error');
+                fileUploadContainer.classList.remove('hidden');
+            }, 2000);
         });
         
-        // 显示免责声明
-        function showDisclaimer() {
-            alert(`免责声明
-1. 本站用途仅供学生查询联考成绩，无任何盈利收费行为。
-2. 本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。
-3. 本站所用数据库均是公开数据并且通过合法途径取得。
-4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。`);
-        }
+        // 文件上传处理
+        fileUpload.addEventListener('change', handleFileUpload);
         
-        // 加载Excel文件
-        async function loadXLSX() {
-            try {
-                const response = await fetch('./data.xlsx');
-                const arrayBuffer = await response.arrayBuffer();
-                const zip = await JSZip.loadAsync(arrayBuffer);
-
-                const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
-                const sharedStrings = parseSharedStrings(sharedStringsXML);
-
-                const workbookXML = await zip.file("xl/workbook.xml").async("string");
-                const sheetNames = getSheetNames(workbookXML);
-
-                combinedData = [];
-                for (const sheet of sheetNames) {
-                    const sheetPath = `xl/worksheets/${sheet.file}`;
-                    const sheetFile = zip.file(sheetPath);
-                    if (sheetFile) {
-                        const sheetXML = await sheetFile.async("string");
-                        const sheetData = parseSheet(sheetXML, sharedStrings);
-                        combinedData.push(...sheetData);
-                    } else {
-                        console.warn(`未找到文件：${sheetPath}`);
-                    }
-                }
-
-                // 自动选择第一个学生显示详情
-                if (combinedData.length > 0) {
-                    // 跳过标题行
-                    const firstStudentRow = combinedData.length > 1 ? combinedData[1] : combinedData[0];
-                    const firstStudent = {
-                        row: firstStudentRow,
-                        direction: detectDirection(firstStudentRow)
-                    };
-                    
-                    // 初始化搜索界面
-                    initSearchInterface();
-                    
-                    // 自动显示第一个学生的详情
-                    setTimeout(() => {
-                        document.getElementById('resultSection').classList.remove('hidden');
-                        showStudentDetail(firstStudent);
-                    }, 500);
-                } else {
-                    throw new Error('Excel文件中没有找到有效数据');
-                }
-            } catch (error) {
-                console.error("加载数据库失败:", error);
-                showLoadFailed();
+        // 拖放上传支持
+        fileUploadContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadContainer.classList.add('border-secondary');
+            fileUploadContainer.classList.add('bg-blue-50');
+        });
+        
+        fileUploadContainer.addEventListener('dragleave', () => {
+            fileUploadContainer.classList.remove('border-secondary');
+            fileUploadContainer.classList.remove('bg-blue-50');
+        });
+        
+        fileUploadContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadContainer.classList.remove('border-secondary');
+            fileUploadContainer.classList.remove('bg-blue-50');
+            
+            if (e.dataTransfer.files.length) {
+                fileUpload.files = e.dataTransfer.files;
+                handleFileUpload();
             }
-        }
+        });
         
-        // 检测学生方向（物理/历史）
-        function detectDirection(row) {
-            const electiveStr = row[4] || '';
-            return electiveStr.includes('物理') ? 'physics' : 'history';
-        }
+        // 搜索按钮点击事件
+        searchButton.addEventListener('click', searchStudent);
         
-        // 解析共享字符串
-        function parseSharedStrings(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            return Array.from(doc.getElementsByTagName("t")).map(node => node.textContent);
-        }
-        
-        // 获取工作表名称
-        function getSheetNames(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            return Array.from(doc.getElementsByTagName("sheet")).map(sheet => ({
-                name: sheet.getAttribute("name"),
-                file: `sheet${sheet.getAttribute("sheetId")}.xml`
-            }));
-        }
-        
-        // 解析工作表
-        function parseSheet(xml, sharedStrings) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const rows = doc.getElementsByTagName("row");
-            
-            return Array.from(rows).map(row => {
-                return Array.from(row.getElementsByTagName("c")).map(cell => {
-                    const type = cell.getAttribute("t");
-                    const value = cell.getElementsByTagName("v")[0]?.textContent;
-                    return type === "s" && value ? sharedStrings[parseInt(value)] || "" : value || "";
-                });
-            });
-        }
-        
-        // 初始化搜索界面
-        function initSearchInterface() {
-            // 更新状态
-            dataStatus.textContent = `数据已加载 (${combinedData.length}条记录)`;
-            dataStatus.className = 'text-green-600 font-medium';
-            
-            // 启用搜索框和按钮
-            queryInput.disabled = false;
-            queryInput.placeholder = "输入学生姓名或考生号";
-            searchButton.innerHTML = '<i class="fa fa-search-plus"></i><span>查询成绩</span>';
-            searchButton.className = 'bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2';
-            searchButton.removeAttribute('disabled');
-            searchButton.removeAttribute('cursor-not-allowed');
-            
-            // 隐藏加载状态，显示搜索界面
-            document.getElementById('loadingSection').classList.add('hidden');
-            
-            // 绑定事件
-            searchButton.addEventListener('click', searchData);
-            queryInput.addEventListener('keypress', e => e.key === 'Enter' && searchData());
-            document.getElementById('manualLoadButton').addEventListener('click', () => fileInput.click());
-            document.getElementById('newSearchButton').addEventListener('click', () => {
-                document.getElementById('noResultSection').classList.add('hidden');
-                document.getElementById('resultSection').classList.remove('hidden');
-                queryInput.focus();
-            });
-            fileInput.addEventListener('change', handleManualFileSelect);
-            
-            queryInput.focus();
-        }
-        
-        // 显示加载失败界面
-        function showLoadFailed() {
-            document.getElementById('loadingSection').classList.add('hidden');
-            document.getElementById('loadFailedSection').classList.remove('hidden');
-        }
-        
-        // 处理手动选择文件
-        async function handleManualFileSelect(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            document.getElementById('loadFailedSection').classList.add('hidden');
-            document.getElementById('loadingSection').classList.remove('hidden');
-            
-            try {
-                const arrayBuffer = await readFileAsArrayBuffer(file);
-                const zip = await JSZip.loadAsync(arrayBuffer);
-
-                const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
-                const sharedStrings = parseSharedStrings(sharedStringsXML);
-
-                const workbookXML = await zip.file("xl/workbook.xml").async("string");
-                const sheetNames = getSheetNames(workbookXML);
-
-                combinedData = [];
-                for (const sheet of sheetNames) {
-                    const sheetPath = `xl/worksheets/${sheet.file}`;
-                    const sheetFile = zip.file(sheetPath);
-                    if (sheetFile) {
-                        const sheetXML = await sheetFile.async("string");
-                        const sheetData = parseSheet(sheetXML, sharedStrings);
-                        combinedData.push(...sheetData);
-                    } else {
-                        console.warn(`未找到文件：${sheetPath}`);
-                    }
-                }
-
-                // 自动选择第一个学生显示详情
-                if (combinedData.length > 0) {
-                    // 跳过标题行
-                    const firstStudentRow = combinedData.length > 1 ? combinedData[1] : combinedData[0];
-                    const firstStudent = {
-                        row: firstStudentRow,
-                        direction: detectDirection(firstStudentRow)
-                    };
-                    
-                    // 初始化搜索界面
-                    initSearchInterface();
-                    
-                    // 自动显示第一个学生的详情
-                    setTimeout(() => {
-                        document.getElementById('resultSection').classList.remove('hidden');
-                        showStudentDetail(firstStudent);
-                    }, 500);
-                } else {
-                    throw new Error('Excel文件中没有找到有效数据');
-                }
-            } catch (error) {
-                console.error('手动加载失败:', error);
-                showLoadFailed();
+        // 搜索输入框回车键事件
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                searchStudent();
             }
-        }
+        });
         
-        // 读取文件为ArrayBuffer
-        function readFileAsArrayBuffer(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = e => resolve(e.target.result);
-                reader.onerror = () => reject(new Error('文件读取失败'));
-                reader.readAsArrayBuffer(file);
-            });
-        }
-        
-        // 搜索数据
-        function searchData() {
-            const query = queryInput.value.trim();
-            if (!query) {
-                alert("请输入学生姓名或考生号");
+        // 处理文件上传
+        function handleFileUpload() {
+            const file = fileUpload.files[0];
+            if (!file) {
+                showStatus('请选择一个文件', 'error');
                 return;
             }
             
-            // 搜索数据并按方向分类
-            const results = combinedData
-                .filter(row => row[columnMaps.physics.base.name]?.includes(query) || 
-                              row[columnMaps.physics.base.examId]?.includes(query))
-                .map(row => ({
-                    row,
-                    direction: detectDirection(row)
-                }));
-            
-            if (results.length > 0) {
-                displayResults(results);
-                document.getElementById('noResultSection').classList.add('hidden');
-                document.getElementById('resultSection').classList.remove('hidden');
-                
-                // 自动显示第一个结果的详情
-                if (results.length > 0) {
-                    showStudentDetail(results[0]);
-                }
-            } else {
-                document.getElementById('resultSection').classList.add('hidden');
-                document.getElementById('noResultSection').classList.remove('hidden');
-            }
-        }
-        
-        // 显示搜索结果
-        function displayResults(results) {
-            resultTable.innerHTML = "";
-            resultCount.textContent = results.length;
-            
-            results.forEach((item, index) => {
-                const row = item.row;
-                const map = columnMaps[item.direction];
-                const tr = document.createElement('tr');
-                tr.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
-                tr.onclick = () => showStudentDetail(item);
-                
-                tr.innerHTML = `
-                    <td class="px-6 py-4">${row[map.base.school] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.base.class] || '-'}</td>
-                    <td class="px-6 py-4 font-medium">${row[map.base.examId] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.base.name] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.base.elective] || '-'}</td>
-                    <td class="px-6 py-4 text-primary font-medium">${row[map.subjects.total.score] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.subjects.total.rankCity] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.subjects.total.rankSchool] || '-'}</td>
-                    <td class="px-6 py-4">${row[map.subjects.total.rankClass] || '-'}</td>
-                `;
-                
-                resultTable.appendChild(tr);
-            });
-        }
-        
-        // 显示学生详情
-        function showStudentDetail(item) {
-            const row = item.row;
-            const map = columnMaps[item.direction];
-            
-            // 填充基本信息
-            document.getElementById('detailName').textContent = row[map.base.name] || '-';
-            document.getElementById('detailExamId').textContent = row[map.base.examId] || '-';
-            document.getElementById('detailSchool').textContent = row[map.base.school] || '-';
-            document.getElementById('detailClass').textContent = row[map.base.class] || '-';
-            document.getElementById('detailSubject').textContent = row[map.base.elective] || '-';
-            document.getElementById('detailDirection').textContent = map.base.direction;
-            
-            // 填充总分信息
-            document.getElementById('totalScore').textContent = row[map.subjects.total.score] || '-';
-            document.getElementById('totalRankCity').textContent = row[map.subjects.total.rankCity] || '-';
-            document.getElementById('totalRankSchool').textContent = row[map.subjects.total.rankSchool] || '-';
-            document.getElementById('totalRankClass').textContent = row[map.subjects.total.rankClass] || '-';
-            
-            // 填充主科成绩
-            document.getElementById('chineseScore').textContent = row[map.subjects.chinese.score] || '-';
-            document.getElementById('chineseRankCity').textContent = row[map.subjects.chinese.rankCity] || '-';
-            document.getElementById('chineseRankSchool').textContent = row[map.subjects.chinese.rankSchool] || '-';
-            document.getElementById('chineseRankClass').textContent = row[map.subjects.chinese.rankClass] || '-';
-            
-            document.getElementById('mathScore').textContent = row[map.subjects.math.score] || '-';
-            document.getElementById('mathRankCity').textContent = row[map.subjects.math.rankCity] || '-';
-            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool] || '-';
-            document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
-            
-            document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
-            document.getElementById('englishRankCity').textContent = row[map.subjects.english.rankCity] || '-';
-            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';
-            document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
-            
-            // 处理选考科目
-            const electiveSubjectsContainer = document.getElementById('electiveSubjects');
-            electiveSubjectsContainer.innerHTML = '';
-            
-            // 解析选科信息
-            const electiveStr = row[map.base.elective] || '';
-            const electiveSubjects = electiveStr.split('+')
-                .map(s => s.trim())
-                .filter(Boolean);
-                
-            // 如果没有明确的选科信息，尝试从方向推断
-            if (electiveSubjects.length === 0) {
-                electiveSubjects.push(map.base.direction);
-                // 根据方向添加可能的科目
-                electiveSubjects.push('化学', '生物', '政治', '地理');
+            // 检查文件名是否为data.xlsx
+            if (file.name !== 'data.xlsx') {
+                showStatus('请上传名为data.xlsx的文件', 'error');
+                return;
             }
             
-            // 为每个选考科目添加卡片
-            electiveSubjects.forEach(subject => {
-                const subjectKey = getSubjectKey(subject);
-                if (subjectKey) {
-                    addElectiveSubjectCard(subjectKey, subject, row, map);
-                }
-            });
+            // 检查文件类型
+            if (!file.name.endsWith('.xlsx')) {
+                showStatus('请上传.xlsx格式的文件', 'error');
+                return;
+            }
             
-            // 显示详情卡片并滚动到视图
-            detailCard.classList.remove('hidden');
-            detailCard.classList.add('fade-in');
-            detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        
-        // 根据科目名称获取科目键
-        function getSubjectKey(subjectName) {
-            const subjectMap = {
-                '物理': 'physics',
-                '化学': 'chemistry',
-                '生物': 'biology',
-                '政治': 'politics',
-                '地理': 'geography',
-                '历史': 'history',
-                '小语种': 'minorLang'
+            showStatus('正在加载文件...', 'loading');
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 获取所有表名
+                    const sheetNames = workbook.SheetNames;
+                    
+                    // 处理所有表格
+                    for (const sheetName of sheetNames) {
+                        const worksheet = workbook.Sheets[sheetName];
+                        
+                        // 转换为JSON
+                        const sheetData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        // 将每个表格的数据添加到学生数据中
+                        studentData = [...studentData, ...sheetData];
+                    }
+                    
+                    if (studentData.length === 0) {
+                        showStatus('Excel文件中未找到数据', 'error');
+                        return;
+                    }
+                    
+                    showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
+                    
+                    // 显示搜索框
+                    searchContainer.classList.remove('hidden');
+                    
+                    // 自动聚焦搜索框
+                    setTimeout(() => {
+                        searchInput.focus();
+                    }, 500);
+                    
+                } catch (error) {
+                    showStatus('文件解析错误: ' + error.message, 'error');
+                }
             };
-            return subjectMap[subjectName] || null;
+            
+            reader.onerror = function() {
+                showStatus('文件读取错误', 'error');
+            };
+            
+            reader.readAsArrayBuffer(file);
         }
         
-        // 添加选考科目卡片
-        function addElectiveSubjectCard(subjectKey, subjectName, row, map) {
-            const subjectData = map.subjects[subjectKey];
-            if (!subjectData) return;
+        // 搜索学生
+        function searchStudent() {
+            const query = searchInput.value.trim().toLowerCase();
+            if (!query) {
+                showStatus('请输入姓名或考号', 'error');
+                return;
+            }
             
-            const container = document.getElementById('electiveSubjects');
+            showStatus('正在搜索...', 'loading');
             
-            const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg p-3 shadow-sm card-hover';
+            // 查找匹配的学生
+            const results = studentData.filter(student => {
+                // 假设Excel中有"姓名"和"考号"列
+                const name = student['姓名']?.toString().toLowerCase() || '';
+                const examNumber = student['考号']?.toString().toLowerCase() || '';
+                
+                return name.includes(query) || examNumber.includes(query);
+            });
             
-            const subjectTitle = document.createElement('div');
-            subjectTitle.className = 'text-sm font-medium text-gray-800 mb-2';
-            subjectTitle.textContent = subjectName;
-            card.appendChild(subjectTitle);
+            if (results.length === 0) {
+                showStatus('未找到匹配的学生', 'error');
+                resultContainer.classList.add('hidden');
+                return;
+            }
             
-            const grid = document.createElement('div');
-            grid.className = 'grid grid-cols-2 gap-2 text-sm';
+            if (results.length > 1) {
+                showStatus(`找到 ${results.length} 位匹配的学生，显示第一个结果`, 'warning');
+            } else {
+                showStatus('找到匹配的学生', 'success');
+            }
             
-            // 赋分
-            const scoreDiv = document.createElement('div');
-            const scoreLabel = document.createElement('div');
-            scoreLabel.className = 'text-xs text-gray-500';
-            scoreLabel.textContent = '赋分';
-            const scoreValue = document.createElement('div');
-            scoreValue.className = 'font-semibold';
-            scoreValue.textContent = row[subjectData.score] || '-';
-            scoreDiv.appendChild(scoreLabel);
-            scoreDiv.appendChild(scoreValue);
-            grid.appendChild(scoreDiv);
+            // 显示结果
+            displayStudentData(results[0]);
+            resultContainer.classList.remove('hidden');
             
-            // 原始分
-            const rawScoreDiv = document.createElement('div');
-            const rawScoreLabel = document.createElement('div');
-            rawScoreLabel.className = 'text-xs text-gray-500';
-            rawScoreLabel.textContent = '原始分';
-            const rawScoreValue = document.createElement('div');
-            rawScoreValue.textContent = subjectData.rawScore !== undefined ? 
-                (row[subjectData.rawScore] || '-') : '-';
-            rawScoreDiv.appendChild(rawScoreLabel);
-            rawScoreDiv.appendChild(rawScoreValue);
-            grid.appendChild(rawScoreDiv);
-            
-            // 等级
-            const levelDiv = document.createElement('div');
-            const levelLabel = document.createElement('div');
-            levelLabel.className = 'text-xs text-gray-500';
-            levelLabel.textContent = '等级';
-            const levelValue = document.createElement('div');
-            levelValue.textContent = subjectData.level !== undefined ? 
-                (row[subjectData.level] || '-') : '-';
-            levelDiv.appendChild(levelLabel);
-            levelDiv.appendChild(levelValue);
-            grid.appendChild(levelDiv);
-            
-            // 市排名
-            const rankDiv = document.createElement('div');
-            const rankLabel = document.createElement('div');
-            rankLabel.className = 'text-xs text-gray-500';
-            rankLabel.textContent = '市排名';
-            const rankValue = document.createElement('div');
-            rankValue.textContent = row[subjectData.rankCity] || '-';
-            rankDiv.appendChild(rankLabel);
-            rankDiv.appendChild(rankValue);
-            grid.appendChild(rankDiv);
-            
-            card.appendChild(grid);
-            container.appendChild(card);
+            // 平滑滚动到结果区域
+            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-    </script>
-</body>
-</html>
+        
+        // 显示学生数据
+        function displayStudentData(student) {
+            // 基本信息
+            document.getElementById('school').textContent = student['学校'] || '-';
+            document.getElementById('class').textContent = student['班级'] || '-';
+            document.getElementById('examNumber').textContent = student['考号'] || '-';
+            document.getElementById('name').textContent = student['姓名'] || '-';
+            document.getElementById('subjectSelection').textContent = student['选科'] || '-';
+            
+            // 判断方向（历史/物理）
+            const subjectSelection = student['选科'] || '';
+            const direction = subjectSelection.startsWith('历') ? '历史' : subjectSelection.startsWith('物') ? '物理' : '未知';
+            document.getElementById('direction').textContent = direction;
+            
+            // 根据方向设置总分信息的标签
+            const directionText = document.getElementById('directionText');
+            const directionText2 = document.getElementById('directionText2');
+            directionText.textContent = direction;
+            directionText2.textContent = direction;
+            
+            // 设置主科名称
+            const mainSubject = document.getElementById('mainSubject');
+            mainSubject.textContent = direction;
+            
+            // 根据方向获取不同的总分和排名数据
+            let totalScaledKey, totalKey, mainSubjectKey;
+            if (direction === '物理') {
+                totalScaledKey = '总分(物理)(赋分)';
+                totalKey = '总分(物理)';
+                mainSubjectKey = '物理';
+            } else if (direction === '历史') {
+                totalScaledKey = '总分(历史)(赋分)';
+                totalKey = '总分(历史)';
+                mainSubjectKey = '历史';
+            } else {
+                totalScaledKey = '总分(物理)(赋分)';
+                totalKey = '总分(物理)';
+                mainSubjectKey = '物理';
+            }
+            
+            // 总分信息 - 赋分
+            document.getElementById('totalScaled').textContent = student[totalScaledKey] || '-';
+            document.getElementById('rankScaledAll').textContent = student[`${totalScaledKey}_方向全体名次`] || '-';
+            document.getElementById('rankScaledDistrict').textContent = student[`${totalScaledKey}_方向区县名次`] || '-';
+            document.getElementById('rankScaledSchool').textContent = student[`${totalScaledKey}_方向校名次`] || '-';
+            document.getElementById('rankScaledClass').textContent = student[`${totalScaledKey}_方向班名次`] || '-';
+            
+            // 总分信息 - 原始分
+            document.getElementById('total').textContent = student[totalKey] || '-';
+            document.getElementById('rankAll').textContent = student[`${totalKey}_方向全体名次`] || '-';
+            document.getElementById('rankDistrict').textContent = student[`${totalKey}_方向区县名次`] || '-';
+            document.getElementById('rankSchool').textContent = student[`${totalKey}_方向校名次`] || '-';
+            document.getElementById('rankClass').textContent = student[`${totalKey}_方向班名次`] || '-';
+            
+            // 各科成绩 - 语文
+            document.getElementById('chineseScore').textContent = student['语文'] || '-';
+            document.getElementById('chineseGrade').textContent = student['语文_等级'] || '-';
+            document.getElementById('chineseRankAll').textContent = student['语文_方向全体名次'] || '-';
+            document.getElementById('chineseRankDistrict').textContent = student['语文_方向区县名次'] || '-';
+            document.getElementById('chineseRankSchool').textContent = student['语文_方向校名次'] || '-';
+            document.getElementById('chineseRankClass').textContent = student['语文_方向班名次'] || '-';
+            
+            // 各科成绩 - 数学
+            document.getElementById('mathScore').textContent = student['数学'] || '-';
+            document.getElementById('mathGrade').textContent = student['数学_等级'] || '-';
+            document.getElementById('mathRankAll').textContent = student['数学_方向全体名次'] || '-';
+            document.getElementById('mathRankDistrict').textContent = student['数学_方向区县名次'] || '-';
+            document.getElementById('mathRankSchool').textContent = student['数学_方向校名次'] || '-';
+            document.getElementById('mathRankClass').textContent = student['数学_方向班名次'] || '-';
+            
+            // 各科成绩 - 英语
