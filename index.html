@@ -426,7 +426,7 @@
         
         // 页面加载完成后自动尝试加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
-            showStatus('正在自动加载本地data.xlsx文件...', 'loading');
+            showStatus('加载数据库', 'loading');
             loadXLSX();
         });
         function parseWithMultiHeader(sheet) {
