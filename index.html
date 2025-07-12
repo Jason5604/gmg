@@ -83,7 +83,7 @@
         <!-- 欢迎信息卡片 -->
         <div class="bg-white rounded-xl shadow-card p-6 mb-8 transform transition-all duration-300 hover:shadow-card-hover">
             <h2 class="text-2xl font-bold text-neutral-dark mb-2">欢迎使用成绩查询系统</h2>
-            <p class="text-gray-600 mb-4">系统正在自动加载本地data.xlsx文件，请稍候...</p>
+            <p class="text-gray-600 mb-4">加载数据库...</p>
             
             <!-- 文件上传区域 -->
             <div id="fileUploadContainer" class="mb-6 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center transition-all duration-300 hover:border-secondary hidden">
@@ -606,11 +606,19 @@
                 return;
             }
             
-            if (results.length > 1) {
-                showStatus(`找到 ${results.length} 位匹配的学生，显示第一个结果`, 'warning');
-            } else {
-                showStatus('找到匹配的学生', 'success');
-            }
+        if (results.length > 1) {
+    const selected = promptSelectSchool(results);
+    if (selected) {
+        showStatus('已选择特定学生', 'success');
+        displayStudentData(selected);
+        resultContainer.classList.remove('hidden');
+        resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        showStatus('未选择有效学生', 'error');
+    }
+    return;
+}
+
             
             // 显示结果
             displayStudentData(results[0]);
