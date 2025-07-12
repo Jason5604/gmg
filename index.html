@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -426,16 +427,56 @@
         // 页面加载完成后自动尝试加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
             showStatus('正在自动加载本地data.xlsx文件...', 'loading');
-            
-            // 由于浏览器安全限制，无法直接访问本地文件系统
-            // 这里模拟自动加载失败，并提示用户
-            setTimeout(() => {
-                showStatus('数据库加载失败，请手动上传data.xlsx文件', 'error');
-                fileUploadContainer.classList.remove('hidden');
-            }, 2000);
+            loadXLSX();
         });
         
-        // 文件上传处理
+        // 使用fetch加载并解析XLSX文件
+        async function loadXLSX() {
+            try {
+                const response = await fetch('./data.xlsx');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                
+                // 获取所有表名
+                const sheetNames = workbook.SheetNames;
+                
+                // 处理所有表格
+                for (const sheetName of sheetNames) {
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    // 转换为JSON
+                    const sheetData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    // 将每个表格的数据添加到学生数据中
+                    studentData = [...studentData, ...sheetData];
+                }
+                
+                if (studentData.length === 0) {
+                    throw new Error('Excel文件中未找到数据');
+                }
+                
+                showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
+                
+                // 显示搜索框
+                searchContainer.classList.remove('hidden');
+                
+                // 自动聚焦搜索框
+                setTimeout(() => {
+                    searchInput.focus();
+                }, 500);
+                
+            } catch (error) {
+                console.error("加载数据库失败:", error);
+                showStatus('数据库加载失败，请手动上传data.xlsx文件', 'error');
+                fileUploadContainer.classList.remove('hidden');
+            }
+        }
+        
+        // 文件上传处理（备选方案）
         fileUpload.addEventListener('change', handleFileUpload);
         
         // 拖放上传支持
@@ -650,3 +691,10 @@
             document.getElementById('mathRankClass').textContent = student['数学_方向班名次'] || '-';
             
             // 各科成绩 - 英语
+            document.getElementById('englishScore').textContent = student['英语'] || '-';
+            document.getElementById('englishGrade').textContent = student['英语_等级'] || '-';
+            document.getElementById('englishRankAll').textContent = student['英语_方向全体名次'] || '-';
+            document.getElementById('englishRankDistrict').textContent = student['英语_方向区县名次'] || '-';
+            document.getElementById('englishRankSchool').textContent = student['英语_方向校名次'] || '-';
+            document.getElementById('englishRankClass').textContent = student['英语_方向班名次'] || '-';
+            
