@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>学生成绩查询系统 @叶天哲</title>
+    <title>梅州兴宁高一下学期期末查询系统 @叶天哲</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -65,7 +65,7 @@
         <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-2">
                 <i class="fa fa-graduation-cap text-2xl"></i>
-                <h1 class="text-xl md:text-2xl font-bold text-shadow">学生成绩查询系统 @叶天哲</h1>
+                <h1 class="text-xl md:text-2xl font-bold text-shadow">梅州兴宁高一下学期期末查询系统 @叶天哲</h1>
             </div>
             <div class="hidden md:flex items-center space-x-6">
                 <a href="#" class="hover:text-accent transition-all-300">首页</a>
@@ -82,8 +82,8 @@
     <main class="flex-grow container mx-auto px-4 py-8">
         <!-- 欢迎信息卡片 -->
         <div class="bg-white rounded-xl shadow-card p-6 mb-8 transform transition-all duration-300 hover:shadow-card-hover">
-            <h2 class="text-2xl font-bold text-neutral-dark mb-2">欢迎使用成绩查询系统</h2>
-            <p class="text-gray-600 mb-4">系统正在自动加载本地data.xlsx文件，请稍候...</p>
+            <h2 class="text-2xl font-bold text-neutral-dark mb-2"></h2>
+            <p class="text-gray-600 mb-4">加载数据库...</p>
             
             <!-- 文件上传区域 -->
             <div id="fileUploadContainer" class="mb-6 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center transition-all duration-300 hover:border-secondary hidden">
@@ -412,6 +412,46 @@
     </footer>
 
     <script>
+        // 列映射配置
+        const columnMaps = {
+            physics: {
+                base: {
+                    school: 0, class: 1, examId: 2, name: 3, elective: 4, direction: '物理'
+                },
+                subjects: {
+                    total: { score: 5, rankCity: 6, rankSchool: 8, rankClass: 9 },
+                    totalScaled: { score: 10, rankCity: 11, rankSchool: 13, rankClass: 14 },
+                    chinese: { score: 15, rankCity: 16, rankSchool: 18, rankClass: 19 },
+                    math: { score: 20, rankCity: 21, rankSchool: 23, rankClass: 24 },
+                    english: { score: 25, rankCity: 26, rankSchool: 28, rankClass: 29 },
+                    physics: { score: 30, rankCity: 31, rankSchool: 33, rankClass: 34 },
+                    chemistry: { score: 35, rankCity: 36, rankSchool: 38, rankClass: 39, rawScore: 40, level: 41 },
+                    biology: { score: 46, rankCity: 47, rankSchool: 49, rankClass: 50, rawScore: 51, level: 52 },
+                    politics: { score: 57, rankCity: 58, rankSchool: 60, rankClass: 61, rawScore: 62, level: 63 },
+                    geography: { score: 68, rankCity: 69, rankSchool: 71, rankClass: 72, rawScore: 73, level: 74 },
+                    minorLang: { score: 79, rankCity: 81, rankSchool: 83, rankClass: 84, level: 80 }
+                }
+            },
+            history: {
+                base: {
+                    school: 0, class: 1, examId: 2, name: 3, elective: 4, direction: '历史'
+                },
+                subjects: {
+                    total: { score: 5, rankCity: 6, rankSchool: 8, rankClass: 9 },
+                    totalScaled: { score: 10, rankCity: 11, rankSchool: 13, rankClass: 14 },
+                    chinese: { score: 15, rankCity: 16, rankSchool: 18, rankClass: 19 },
+                    math: { score: 20, rankCity: 21, rankSchool: 23, rankClass: 24 },
+                    english: { score: 25, rankCity: 26, rankSchool: 28, rankClass: 29 },
+                    history: { score: 30, rankCity: 31, rankSchool: 33, rankClass: 34 },
+                    chemistry: { score: 35, rankCity: 36, rankSchool: 38, rankClass: 39, rawScore: 40, level: 41 },
+                    biology: { score: 46, rankCity: 47, rankSchool: 49, rankClass: 50, rawScore: 51, level: 52 },
+                    politics: { score: 57, rankCity: 58, rankSchool: 60, rankClass: 61, rawScore: 62, level: 63 },
+                    geography: { score: 68, rankCity: 69, rankSchool: 71, rankClass: 72, rawScore: 73, level: 74 },
+                    minorLang: { score: 79, rankCity: 81, rankSchool: 83, rankClass: 84, level: 80 }
+                }
+            }
+        };
+
         // 全局变量存储解析后的学生数据
         let studentData = [];
         
@@ -426,10 +466,17 @@
         
         // 页面加载完成后自动尝试加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
-            showStatus('正在自动加载本地data.xlsx文件...', 'loading');
+            showStatus('加载数据库', 'loading');
             loadXLSX();
         });
-        
+
+        // 解析Excel sheet
+        function parseSheet(sheet) {
+            // 使用 sheet_to_json 解析为数组，跳过前两行表头
+            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+            return rawData.slice(2); // 从第3行开始（索引2）
+        }
+
         // 使用fetch加载并解析XLSX文件
         async function loadXLSX() {
             try {
@@ -447,42 +494,7 @@
                 // 处理所有表格
                 for (const sheetName of sheetNames) {
                     const worksheet = workbook.Sheets[sheetName];
-                    
-                    // 转换为JSON
-                    
-function parseWithMultiHeader(sheet) {
-    const range = XLSX.utils.decode_range(sheet['!ref']);
-    const headers = [];
-
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell1 = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
-        const cell2 = sheet[XLSX.utils.encode_cell({ r: 1, c: C })];
-
-        const top = cell1 ? cell1.v.toString().trim() : '';
-        const bottom = cell2 ? cell2.v.toString().trim() : '';
-        let combined = top;
-
-        if (top && bottom) combined = `${top}_${bottom}`;
-        else if (bottom) combined = bottom;
-
-        headers.push(combined);
-    }
-
-    const data = [];
-
-    for (let R = 2; R <= range.e.r; ++R) {
-        const row = {};
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
-            row[headers[C]] = cell ? cell.v : '';
-        }
-        data.push(row);
-    }
-
-    return data;
-}
-
-                    const sheetData = parseWithMultiHeader(worksheet);
+                    const sheetData = parseSheet(worksheet);
                     
                     // 将每个表格的数据添加到学生数据中
                     studentData = [...studentData, ...sheetData];
@@ -579,42 +591,7 @@ function parseWithMultiHeader(sheet) {
                     // 处理所有表格
                     for (const sheetName of sheetNames) {
                         const worksheet = workbook.Sheets[sheetName];
-                        
-                        // 转换为JSON
-                        
-function parseWithMultiHeader(sheet) {
-    const range = XLSX.utils.decode_range(sheet['!ref']);
-    const headers = [];
-
-    for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell1 = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
-        const cell2 = sheet[XLSX.utils.encode_cell({ r: 1, c: C })];
-
-        const top = cell1 ? cell1.v.toString().trim() : '';
-        const bottom = cell2 ? cell2.v.toString().trim() : '';
-        let combined = top;
-
-        if (top && bottom) combined = `${top}_${bottom}`;
-        else if (bottom) combined = bottom;
-
-        headers.push(combined);
-    }
-
-    const data = [];
-
-    for (let R = 2; R <= range.e.r; ++R) {
-        const row = {};
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-            const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
-            row[headers[C]] = cell ? cell.v : '';
-        }
-        data.push(row);
-    }
-
-    return data;
-}
-
-                    const sheetData = parseWithMultiHeader(worksheet);
+                        const sheetData = parseSheet(worksheet);
                         
                         // 将每个表格的数据添加到学生数据中
                         studentData = [...studentData, ...sheetData];
@@ -658,12 +635,10 @@ function parseWithMultiHeader(sheet) {
             showStatus('正在搜索...', 'loading');
             
             // 查找匹配的学生
-            const results = studentData.filter(student => {
-                // 假设Excel中有"姓名"和"考号"列
-                const name = student['姓名']?.toString().toLowerCase() || '';
-                const examNumber = student['考号']?.toString().toLowerCase() || '';
-                
-                return name.includes(query) || examNumber.includes(query);
+            const results = studentData.filter(row => {
+                const name = String(row[columnMaps.physics.base.name]).toLowerCase();
+                const examId = String(row[columnMaps.physics.base.examId]).toLowerCase();
+                return name.includes(query) || examId.includes(query);
             });
             
             if (results.length === 0) {
@@ -673,9 +648,8 @@ function parseWithMultiHeader(sheet) {
             }
             
             if (results.length > 1) {
-                showStatus(`找到 ${results.length} 位匹配的学生，显示第一个结果`, 'warning');
-            } else {
-                showStatus('找到匹配的学生', 'success');
+                showStatus('找到多个匹配学生，请输入更精确的姓名或考号', 'warning');
+                return;
             }
             
             // 显示结果
@@ -687,122 +661,108 @@ function parseWithMultiHeader(sheet) {
         }
         
         // 显示学生数据
-        function displayStudentData(student) {
+        function displayStudentData(row) {
+            // 判断方向
+            const elective = row[columnMaps.physics.base.elective] || '';
+            const direction = elective.startsWith('物') ? 'physics' : 'history';
+            const map = columnMaps[direction];
+            
             // 基本信息
-            document.getElementById('school').textContent = student['学校'] || '-';
-            document.getElementById('class').textContent = student['班级'] || '-';
-            document.getElementById('examNumber').textContent = student['考号'] || '-';
-            document.getElementById('name').textContent = student['姓名'] || '-';
-            document.getElementById('subjectSelection').textContent = student['选科'] || '-';
-            
-            // 判断方向（历史/物理）
-            const subjectSelection = student['选科'] || '';
-            const direction = subjectSelection.startsWith('历') ? '历史' : subjectSelection.startsWith('物') ? '物理' : '未知';
-            document.getElementById('direction').textContent = direction;
-            
-            // 根据方向设置总分信息的标签
-            const directionText = document.getElementById('directionText');
-            const directionText2 = document.getElementById('directionText2');
-            directionText.textContent = direction;
-            directionText2.textContent = direction;
+            document.getElementById('school').textContent = row[map.base.school] || '-';
+            document.getElementById('class').textContent = row[map.base.class] || '-';
+            document.getElementById('examNumber').textContent = row[map.base.examId] || '-';
+            document.getElementById('name').textContent = row[map.base.name] || '-';
+            document.getElementById('subjectSelection').textContent = row[map.base.elective] || '-';
+            document.getElementById('direction').textContent = map.base.direction || '-';
             
             // 设置主科名称
             const mainSubject = document.getElementById('mainSubject');
-            mainSubject.textContent = direction;
+            mainSubject.textContent = map.base.direction;
             
-            // 根据方向获取不同的总分和排名数据
-            let totalScaledKey, totalKey, mainSubjectKey;
-            if (direction === '物理') {
-                totalScaledKey = '总分(物理)(赋分)';
-                totalKey = '总分(物理)';
-                mainSubjectKey = '物理';
-            } else if (direction === '历史') {
-                totalScaledKey = '总分(历史)(赋分)';
-                totalKey = '总分(历史)';
-                mainSubjectKey = '历史';
-            } else {
-                totalScaledKey = '总分(物理)(赋分)';
-                totalKey = '总分(物理)';
-                mainSubjectKey = '物理';
-            }
+            // 设置总分信息的标签
+            const directionText = document.getElementById('directionText');
+            const directionText2 = document.getElementById('directionText2');
+            directionText.textContent = map.base.direction;
+            directionText2.textContent = map.base.direction;
             
             // 总分信息 - 赋分
-            document.getElementById('totalScaled').textContent = student[totalScaledKey] || '-';
-            document.getElementById('rankScaledAll').textContent = student[`${totalScaledKey}_方向全体名次`] || '-';
-            document.getElementById('rankScaledDistrict').textContent = student[`${totalScaledKey}_方向区县名次`] || '-';
-            document.getElementById('rankScaledSchool').textContent = student[`${totalScaledKey}_方向校名次`] || '-';
-            document.getElementById('rankScaledClass').textContent = student[`${totalScaledKey}_方向班名次`] || '-';
+            document.getElementById('totalScaled').textContent = row[map.subjects.totalScaled.score] || '-';
+            document.getElementById('rankScaledAll').textContent = row[map.subjects.totalScaled.rankCity] || '-';
+            document.getElementById('rankScaledDistrict').textContent = row[map.subjects.totalScaled.rankCity] || '-';
+            document.getElementById('rankScaledSchool').textContent = row[map.subjects.totalScaled.rankSchool] || '-';
+            document.getElementById('rankScaledClass').textContent = row[map.subjects.totalScaled.rankClass] || '-';
             
             // 总分信息 - 原始分
-            document.getElementById('total').textContent = student[totalKey] || '-';
-            document.getElementById('rankAll').textContent = student[`${totalKey}_方向全体名次`] || '-';
-            document.getElementById('rankDistrict').textContent = student[`${totalKey}_方向区县名次`] || '-';
-            document.getElementById('rankSchool').textContent = student[`${totalKey}_方向校名次`] || '-';
-            document.getElementById('rankClass').textContent = student[`${totalKey}_方向班名次`] || '-';
+            document.getElementById('total').textContent = row[map.subjects.total.score] || '-';
+            document.getElementById('rankAll').textContent = row[map.subjects.total.rankCity] || '-';
+            document.getElementById('rankDistrict').textContent = row[map.subjects.total.rankCity] || '-';
+            document.getElementById('rankSchool').textContent = row[map.subjects.total.rankSchool] || '-';
+            document.getElementById('rankClass').textContent = row[map.subjects.total.rankClass] || '-';
             
             // 各科成绩 - 语文
-            document.getElementById('chineseScore').textContent = student['语文'] || '-';
-            document.getElementById('chineseGrade').textContent = student['语文_等级'] || '-';
-            document.getElementById('chineseRankAll').textContent = student['语文_方向全体名次'] || '-';
-            document.getElementById('chineseRankDistrict').textContent = student['语文_方向区县名次'] || '-';
-            document.getElementById('chineseRankSchool').textContent = student['语文_方向校名次'] || '-';
-            document.getElementById('chineseRankClass').textContent = student['语文_方向班名次'] || '-';
+            document.getElementById('chineseScore').textContent = row[map.subjects.chinese.score] || '-';
+            document.getElementById('chineseGrade').textContent = row[map.subjects.chinese.level] || '-';
+            document.getElementById('chineseRankAll').textContent = row[map.subjects.chinese.rankCity] || '-';
+            document.getElementById('chineseRankDistrict').textContent = row[map.subjects.chinese.rankCity] || '-';
+            document.getElementById('chineseRankSchool').textContent = row[map.subjects.chinese.rankSchool] || '-';
+            document.getElementById('chineseRankClass').textContent = row[map.subjects.chinese.rankClass] || '-';
             
             // 各科成绩 - 数学
-            document.getElementById('mathScore').textContent = student['数学'] || '-';
-            document.getElementById('mathGrade').textContent = student['数学_等级'] || '-';
-            document.getElementById('mathRankAll').textContent = student['数学_方向全体名次'] || '-';
-            document.getElementById('mathRankDistrict').textContent = student['数学_方向区县名次'] || '-';
-            document.getElementById('mathRankSchool').textContent = student['数学_方向校名次'] || '-';
-            document.getElementById('mathRankClass').textContent = student['数学_方向班名次'] || '-';
+            document.getElementById('mathScore').textContent = row[map.subjects.math.score] || '-';
+            document.getElementById('mathGrade').textContent = row[map.subjects.math.level] || '-';
+            document.getElementById('mathRankAll').textContent = row[map.subjects.math.rankCity] || '-';
+            document.getElementById('mathRankDistrict').textContent = row[map.subjects.math.rankCity] || '-';
+            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool] || '-';
+            document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
             
             // 各科成绩 - 英语
-            document.getElementById('englishScore').textContent = student['英语'] || '-';
-            document.getElementById('englishGrade').textContent = student['英语_等级'] || '-';
-            document.getElementById('englishRankAll').textContent = student['英语_方向全体名次'] || '-';
-            document.getElementById('englishRankDistrict').textContent = student['英语_方向区县名次'] || '-';
-            document.getElementById('englishRankSchool').textContent = student['英语_方向校名次'] || '-';
-            document.getElementById('englishRankClass').textContent = student['英语_方向班名次'] || '-';
+            document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
+            document.getElementById('englishGrade').textContent = row[map.subjects.english.level] || '-';
+            document.getElementById('englishRankAll').textContent = row[map.subjects.english.rankCity] || '-';
+            document.getElementById('englishRankDistrict').textContent = row[map.subjects.english.rankCity] || '-';
+            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';
+            document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
             
             // 各科成绩 - 主科(物理/历史)
-            document.getElementById('mainSubjectScore').textContent = student[mainSubjectKey] || '-';
-            document.getElementById('mainSubjectGrade').textContent = student[`${mainSubjectKey}_等级`] || '-';
-            document.getElementById('mainSubjectRankAll').textContent = student[`${mainSubjectKey}_方向全体名次`] || '-';
-            document.getElementById('mainSubjectRankDistrict').textContent = student[`${mainSubjectKey}_方向区县名次`] || '-';
-            document.getElementById('mainSubjectRankSchool').textContent = student[`${mainSubjectKey}_方向校名次`] || '-';
-            document.getElementById('mainSubjectRankClass').textContent = student[`${mainSubjectKey}_方向班名次`] || '-';
+            const mainSubjectKey = direction === 'physics' ? 'physics' : 'history';
+            document.getElementById('mainSubjectScore').textContent = row[map.subjects[mainSubjectKey].score] || '-';
+            document.getElementById('mainSubjectGrade').textContent = row[map.subjects[mainSubjectKey].level] || '-';
+            document.getElementById('mainSubjectRankAll').textContent = row[map.subjects[mainSubjectKey].rankCity] || '-';
+            document.getElementById('mainSubjectRankDistrict').textContent = row[map.subjects[mainSubjectKey].rankCity] || '-';
+            document.getElementById('mainSubjectRankSchool').textContent = row[map.subjects[mainSubjectKey].rankSchool] || '-';
+            document.getElementById('mainSubjectRankClass').textContent = row[map.subjects[mainSubjectKey].rankClass] || '-';
             
             // 各科成绩 - 化学
-            document.getElementById('chemistryScore').textContent = student['化学'] || '-';
-            document.getElementById('chemistryGrade').textContent = student['化学_等级'] || '-';
-            document.getElementById('chemistryRankAll').textContent = student['化学_方向全体名次'] || '-';
-            document.getElementById('chemistryRankDistrict').textContent = student['化学_方向区县名次'] || '-';
-            document.getElementById('chemistryRankSchool').textContent = student['化学_方向校名次'] || '-';
-            document.getElementById('chemistryRankClass').textContent = student['化学_方向班名次'] || '-';
+            document.getElementById('chemistryScore').textContent = row[map.subjects.chemistry.score] || '-';
+            document.getElementById('chemistryGrade').textContent = row[map.subjects.chemistry.level] || '-';
+            document.getElementById('chemistryRankAll').textContent = row[map.subjects.chemistry.rankCity] || '-';
+            document.getElementById('chemistryRankDistrict').textContent = row[map.subjects.chemistry.rankCity] || '-';
+            document.getElementById('chemistryRankSchool').textContent = row[map.subjects.chemistry.rankSchool] || '-';
+            document.getElementById('chemistryRankClass').textContent = row[map.subjects.chemistry.rankClass] || '-';
             
             // 各科成绩 - 生物
-            document.getElementById('biologyScore').textContent = student['生物'] || '-';
-            document.getElementById('biologyGrade').textContent = student['生物_等级'] || '-';
-            document.getElementById('biologyRankAll').textContent = student['生物_方向全体名次'] || '-';
-            document.getElementById('biologyRankDistrict').textContent = student['生物_方向区县名次'] || '-';
-            document.getElementById('biologyRankSchool').textContent = student['生物_方向校名次'] || '-';
-            document.getElementById('biologyRankClass').textContent = student['生物_方向班名次'] || '-';
+            document.getElementById('biologyScore').textContent = row[map.subjects.biology.score] || '-';
+            document.getElementById('biologyGrade').textContent = row[map.subjects.biology.level] || '-';
+            document.getElementById('biologyRankAll').textContent = row[map.subjects.biology.rankCity] || '-';
+            document.getElementById('biologyRankDistrict').textContent = row[map.subjects.biology.rankCity] || '-';
+            document.getElementById('biologyRankSchool').textContent = row[map.subjects.biology.rankSchool] || '-';
+            document.getElementById('biologyRankClass').textContent = row[map.subjects.biology.rankClass] || '-';
             
             // 各科成绩 - 政治
-            document.getElementById('politicsScore').textContent = student['政治'] || '-';
-            document.getElementById('politicsGrade').textContent = student['政治_等级'] || '-';
-            document.getElementById('politicsRankAll').textContent = student['政治_方向全体名次'] || '-';
-            document.getElementById('politicsRankDistrict').textContent = student['政治_方向区县名次'] || '-';
-            document.getElementById('politicsRankSchool').textContent = student['政治_方向校名次'] || '-';
-            document.getElementById('politicsRankClass').textContent = student['政治_方向班名次'] || '-';
+            document.getElementById('politicsScore').textContent = row[map.subjects.politics.score] || '-';
+            document.getElementById('politicsGrade').textContent = row[map.subjects.politics.level] || '-';
+            document.getElementById('politicsRankAll').textContent = row[map.subjects.politics.rankCity] || '-';
+            document.getElementById('politicsRankDistrict').textContent = row[map.subjects.politics.rankCity] || '-';
+            document.getElementById('politicsRankSchool').textContent = row[map.subjects.politics.rankSchool] || '-';
+            document.getElementById('politicsRankClass').textContent = row[map.subjects.politics.rankClass] || '-';
             
             // 各科成绩 - 地理
-            document.getElementById('geographyScore').textContent = student['地理'] || '-';
-            document.getElementById('geographyGrade').textContent = student['地理_等级'] || '-';
-            document.getElementById('geographyRankAll').textContent = student['地理_方向全体名次'] || '-';
-            document.getElementById('geographyRankDistrict').textContent = student['地理_方向区县名次'] || '-';
-            document.getElementById('geographyRankSchool').textContent = student['地理_方向校名次'] || '-';
-            document.getElementById('geographyRankClass').textContent = student['地理_方向班名次'] || '-';
+            document.getElementById('geographyScore').textContent = row[map.subjects.geography.score] || '-';
+            document.getElementById('geographyGrade').textContent = row[map.subjects.geography.level] || '-';
+            document.getElementById('geographyRankAll').textContent = row[map.subjects.geography.rankCity] || '-';
+            document.getElementById('geographyRankDistrict').textContent = row[map.subjects.geography.rankCity] || '-';
+            document.getElementById('geographyRankSchool').textContent = row[map.subjects.geography.rankSchool] || '-';
+            document.getElementById('geographyRankClass').textContent = row[map.subjects.geography.rankClass] || '-';
         }
         
         // 显示状态消息
@@ -830,11 +790,9 @@ function parseWithMultiHeader(sheet) {
                     statusMessage.classList.add('bg-red-50', 'border-l-4', 'border-red-400', 'text-red-700');
                     break;
                 default:
-                    // 默认无样式
                     break;
             }
         }
     </script>
 </body>
 </html>
-    
