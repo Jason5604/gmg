@@ -128,7 +128,7 @@
                 </div>
                 
                 <!-- 详情卡片 -->
-                <div id="detailCard" class="hidden p-6 border-t border-gray-200">
+                <div id="detailCard" class="p-6 border-t border-gray-200">
                     <div class="flex flex-col md:flex-row gap-6">
                         <div class="w-full md:w-1/3 bg-gray-50 rounded-lg p-4 card-hover">
                             <h3 class="font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
@@ -295,7 +295,7 @@
         <!-- 数据加载失败提示 -->
         <section id="loadFailedSection" class="hidden text-center py-12">
             <div class="bg-white rounded-xl shadow-lg p-8 max-w-md mx-auto">
-                <div class="text-danger text-5xl mb-4">
+                <div class="text-warning text-5xl mb-4">
                     <i class="fa fa-exclamation-circle"></i>
                 </div>
                 <h2 class="text-xl font-semibold text-gray-800 mb-2">数据加载失败</h2>
@@ -340,6 +340,7 @@
     <script>
         // 全局变量
         let combinedData = [];
+        let currentDirection = 'physics'; // 默认物理方向
         // 物理方向和历史方向的字段索引映射表
         const columnMaps = {
             physics: {
@@ -389,7 +390,7 @@
         // 页面加载完成后自动加载data.xlsx
         document.addEventListener('DOMContentLoaded', () => {
             showDisclaimer();
-            loadLocalExcel();
+            loadXLSX();
         });
         
         // 显示免责声明
@@ -401,64 +402,86 @@
 4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。`);
         }
         
-        // 自动加载本地data.xlsx文件
-        async function loadLocalExcel() {
+        // 加载Excel文件
+        async function loadXLSX() {
             try {
-                // 尝试从本地加载data.xlsx
                 const response = await fetch('./data.xlsx');
-                
-                if (!response.ok) {
-                    throw new Error('文件不存在或无法访问');
-                }
-                
                 const arrayBuffer = await response.arrayBuffer();
-                combinedData = await parseExcelData(arrayBuffer);
-                
-                // 保存数据到本地存储
-                localStorage.setItem('examData', JSON.stringify(combinedData));
-                localStorage.setItem('examDataTimestamp', Date.now().toString());
-                
-                // 加载成功，初始化界面
-                initSearchInterface();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+
+                const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
+                const sharedStrings = parseSharedStrings(sharedStringsXML);
+
+                const workbookXML = await zip.file("xl/workbook.xml").async("string");
+                const sheetNames = getSheetNames(workbookXML);
+
+                combinedData = [];
+                for (const sheet of sheetNames) {
+                    const sheetPath = `xl/worksheets/${sheet.file}`;
+                    const sheetFile = zip.file(sheetPath);
+                    if (sheetFile) {
+                        const sheetXML = await sheetFile.async("string");
+                        const sheetData = parseSheet(sheetXML, sharedStrings);
+                        combinedData.push(...sheetData);
+                    } else {
+                        console.warn(`未找到文件：${sheetPath}`);
+                    }
+                }
+
+                // 自动选择第一个学生显示详情
+                if (combinedData.length > 0) {
+                    const firstStudent = {
+                        row: combinedData[0],
+                        direction: 'physics' // 默认物理方向，实际应根据数据判断
+                    };
+                    
+                    // 初始化搜索界面
+                    initSearchInterface();
+                    
+                    // 自动显示第一个学生的详情
+                    setTimeout(() => {
+                        document.getElementById('resultSection').classList.remove('hidden');
+                        showStudentDetail(firstStudent);
+                    }, 500);
+                } else {
+                    throw new Error('Excel文件中没有找到有效数据');
+                }
             } catch (error) {
-                console.error('自动加载失败:', error);
+                console.error("加载数据库失败:", error);
                 showLoadFailed();
             }
         }
         
-        // 解析Excel数据
-        async function parseExcelData(arrayBuffer) {
-            const zip = await JSZip.loadAsync(arrayBuffer);
-            const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
-            const sharedStrings = parseSharedStrings(sharedStringsXML);
-            const workbookXML = await zip.file("xl/workbook.xml").async("string");
-            const sheetNames = getSheetNames(workbookXML);
+        // 解析共享字符串
+        function parseSharedStrings(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            return Array.from(doc.getElementsByTagName("t")).map(node => node.textContent);
+        }
+        
+        // 获取工作表名称
+        function getSheetNames(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            return Array.from(doc.getElementsByTagName("sheet")).map(sheet => ({
+                name: sheet.getAttribute("name"),
+                file: `sheet${sheet.getAttribute("sheetId")}.xml`
+            }));
+        }
+        
+        // 解析工作表
+        function parseSheet(xml, sharedStrings) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const rows = doc.getElementsByTagName("row");
             
-            // 识别物理和历史工作表
-            const physicsSheet = sheetNames.find(s => s.name.toLowerCase().includes('物理'));
-            const historySheet = sheetNames.find(s => s.name.toLowerCase().includes('历史'));
-            
-            if (!physicsSheet && !historySheet) {
-                throw new Error('未找到物理或历史工作表');
-            }
-            
-            const allData = [];
-            
-            // 解析物理工作表
-            if (physicsSheet) {
-                const sheetXML = await zip.file(`xl/worksheets/${physicsSheet.file}`).async("string");
-                const sheetData = parseSheet(sheetXML, sharedStrings);
-                allData.push(...sheetData.slice(1).map(row => ({ row, direction: 'physics' })));
-            }
-            
-            // 解析历史工作表
-            if (historySheet) {
-                const sheetXML = await zip.file(`xl/worksheets/${historySheet.file}`).async("string");
-                const sheetData = parseSheet(sheetXML, sharedStrings);
-                allData.push(...sheetData.slice(1).map(row => ({ row, direction: 'history' })));
-            }
-            
-            return allData;
+            return Array.from(rows).map(row => {
+                return Array.from(row.getElementsByTagName("c")).map(cell => {
+                    const type = cell.getAttribute("t");
+                    const value = cell.getElementsByTagName("v")[0]?.textContent;
+                    return type === "s" && value ? sharedStrings[parseInt(value)] || "" : value || "";
+                });
+            });
         }
         
         // 初始化搜索界面
@@ -477,7 +500,6 @@
             
             // 隐藏加载状态，显示搜索界面
             document.getElementById('loadingSection').classList.add('hidden');
-            document.getElementById('resultSection').classList.remove('hidden');
             
             // 绑定事件
             searchButton.addEventListener('click', searchData);
@@ -509,12 +531,45 @@
             
             try {
                 const arrayBuffer = await readFileAsArrayBuffer(file);
-                combinedData = await parseExcelData(arrayBuffer);
-                
-                localStorage.setItem('examData', JSON.stringify(combinedData));
-                localStorage.setItem('examDataTimestamp', Date.now().toString());
-                
-                initSearchInterface();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+
+                const sharedStringsXML = await zip.file("xl/sharedStrings.xml").async("string");
+                const sharedStrings = parseSharedStrings(sharedStringsXML);
+
+                const workbookXML = await zip.file("xl/workbook.xml").async("string");
+                const sheetNames = getSheetNames(workbookXML);
+
+                combinedData = [];
+                for (const sheet of sheetNames) {
+                    const sheetPath = `xl/worksheets/${sheet.file}`;
+                    const sheetFile = zip.file(sheetPath);
+                    if (sheetFile) {
+                        const sheetXML = await sheetFile.async("string");
+                        const sheetData = parseSheet(sheetXML, sharedStrings);
+                        combinedData.push(...sheetData);
+                    } else {
+                        console.warn(`未找到文件：${sheetPath}`);
+                    }
+                }
+
+                // 自动选择第一个学生显示详情
+                if (combinedData.length > 0) {
+                    const firstStudent = {
+                        row: combinedData[0],
+                        direction: 'physics' // 默认物理方向，实际应根据数据判断
+                    };
+                    
+                    // 初始化搜索界面
+                    initSearchInterface();
+                    
+                    // 自动显示第一个学生的详情
+                    setTimeout(() => {
+                        document.getElementById('resultSection').classList.remove('hidden');
+                        showStudentDetail(firstStudent);
+                    }, 500);
+                } else {
+                    throw new Error('Excel文件中没有找到有效数据');
+                }
             } catch (error) {
                 console.error('手动加载失败:', error);
                 showLoadFailed();
@@ -539,16 +594,21 @@
                 return;
             }
             
-            const results = combinedData.filter(item => {
-                const row = item.row;
-                const map = columnMaps[item.direction];
-                return row[map.base.name]?.includes(query) || row[map.base.examId]?.includes(query);
+            // 根据方向筛选数据
+            const results = combinedData.filter(row => {
+                return row[columnMaps[currentDirection].base.name]?.includes(query) || 
+                       row[columnMaps[currentDirection].base.examId]?.includes(query);
             });
             
             if (results.length > 0) {
                 displayResults(results);
                 document.getElementById('noResultSection').classList.add('hidden');
                 document.getElementById('resultSection').classList.remove('hidden');
+                
+                // 自动显示第一个结果的详情
+                if (results.length > 0) {
+                    showStudentDetail({row: results[0], direction: currentDirection});
+                }
             } else {
                 document.getElementById('resultSection').classList.add('hidden');
                 document.getElementById('noResultSection').classList.remove('hidden');
@@ -560,12 +620,11 @@
             resultTable.innerHTML = "";
             resultCount.textContent = results.length;
             
-            results.forEach((item, index) => {
-                const row = item.row;
-                const map = columnMaps[item.direction];
+            results.forEach((row, index) => {
+                const map = columnMaps[currentDirection];
                 const tr = document.createElement('tr');
                 tr.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
-                tr.onclick = () => showStudentDetail(item);
+                tr.onclick = () => showStudentDetail({row, direction: currentDirection});
                 
                 tr.innerHTML = `
                     <td class="px-6 py-4">${row[map.base.school] || '-'}</td>
@@ -619,102 +678,110 @@
             document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
             
             // 处理选考科目
-            const container = document.getElementById('electiveSubjects');
-            container.innerHTML = '';
+            const electiveSubjectsContainer = document.getElementById('electiveSubjects');
+            electiveSubjectsContainer.innerHTML = '';
             
-            // 添加方向主科
-            if (item.direction === 'physics') {
-                addElectiveCard('physics', '物理', row, map);
-            } else {
-                addElectiveCard('history', '历史', row, map);
-            }
+            // 解析选科信息
+            const electiveSubjects = (row[map.base.elective] || '').split('+').map(s => s.trim()).filter(Boolean);
             
-            // 添加选科
-            (row[map.base.elective] || '').split('+').forEach(subject => {
-                subject = subject.trim();
-                const key = getSubjectKey(subject);
-                if (key && key !== item.direction) {
-                    addElectiveCard(key, subject, row, map);
+            // 添加所有选考科目，包括方向主科
+            const mainSubject = map.base.direction === '物理' ? '物理' : '历史';
+            const allSubjects = [mainSubject, ...electiveSubjects].filter((s, i, arr) => arr.indexOf(s) === i);
+            
+            allSubjects.forEach(subject => {
+                const subjectKey = getSubjectKey(subject);
+                if (subjectKey) {
+                    addElectiveSubjectCard(subjectKey, subject, row, map);
                 }
             });
             
-            // 显示详情并滚动
-            document.getElementById('detailCard').classList.remove('hidden');
-            document.getElementById('detailCard').scrollIntoView({ behavior: 'smooth' });
+            // 显示详情卡片并滚动到视图
+            detailCard.classList.remove('hidden');
+            detailCard.classList.add('fade-in');
+            detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
         
-        // 获取科目键名
+        // 根据科目名称获取科目键
         function getSubjectKey(subjectName) {
-            const map = {
-                '物理': 'physics', '化学': 'chemistry', '生物': 'biology',
-                '政治': 'politics', '地理': 'geography', '历史': 'history', '小语种': 'minorLang'
+            const subjectMap = {
+                '物理': 'physics',
+                '化学': 'chemistry',
+                '生物': 'biology',
+                '政治': 'politics',
+                '地理': 'geography',
+                '历史': 'history',
+                '小语种': 'minorLang'
             };
-            return map[subjectName] || null;
+            return subjectMap[subjectName] || null;
         }
         
         // 添加选考科目卡片
-        function addElectiveCard(key, name, row, map) {
-            const data = map.subjects[key];
-            if (!data) return;
+        function addElectiveSubjectCard(subjectKey, subjectName, row, map) {
+            const subjectData = map.subjects[subjectKey];
+            if (!subjectData) return;
+            
+            const container = document.getElementById('electiveSubjects');
             
             const card = document.createElement('div');
             card.className = 'bg-white rounded-lg p-3 shadow-sm card-hover';
             
-            card.innerHTML = `
-                <div class="text-sm font-medium text-gray-800 mb-2">${name}</div>
-                <div class="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                        <div class="text-xs text-gray-500">赋分</div>
-                        <div class="font-semibold">${row[data.score] || '-'}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">原始分</div>
-                        <div>${data.rawScore ? (row[data.rawScore] || '-') : '-'}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">等级</div>
-                        <div>${data.level ? (row[data.level] || '-') : '-'}</div>
-                    </div>
-                    <div>
-                        <div class="text-xs text-gray-500">市排名</div>
-                        <div>${row[data.rankCity] || '-'}</div>
-                    </div>
-                </div>
-            `;
+            const subjectTitle = document.createElement('div');
+            subjectTitle.className = 'text-sm font-medium text-gray-800 mb-2';
+            subjectTitle.textContent = subjectName;
+            card.appendChild(subjectTitle);
             
-            document.getElementById('electiveSubjects').appendChild(card);
-        }
-        
-        // 解析共享字符串
-        function parseSharedStrings(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            return Array.from(doc.getElementsByTagName("t")).map(node => node.textContent);
-        }
-        
-        // 获取工作表名称
-        function getSheetNames(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            return Array.from(doc.getElementsByTagName("sheet")).map(sheet => ({
-                name: sheet.getAttribute("name"),
-                file: `sheet${sheet.getAttribute("sheetId")}.xml`
-            }));
-        }
-        
-        // 解析工作表数据
-        function parseSheet(xml, sharedStrings) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const rows = doc.getElementsByTagName("row");
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 gap-2 text-sm';
             
-            return Array.from(rows).map(row => {
-                return Array.from(row.getElementsByTagName("c")).map(cell => {
-                    const type = cell.getAttribute("t");
-                    const value = cell.getElementsByTagName("v")[0]?.textContent;
-                    return type === "s" && value ? sharedStrings[parseInt(value)] || "" : value || "";
-                });
-            });
+            // 赋分
+            const scoreDiv = document.createElement('div');
+            const scoreLabel = document.createElement('div');
+            scoreLabel.className = 'text-xs text-gray-500';
+            scoreLabel.textContent = '赋分';
+            const scoreValue = document.createElement('div');
+            scoreValue.className = 'font-semibold';
+            scoreValue.textContent = row[subjectData.score] || '-';
+            scoreDiv.appendChild(scoreLabel);
+            scoreDiv.appendChild(scoreValue);
+            grid.appendChild(scoreDiv);
+            
+            // 原始分
+            const rawScoreDiv = document.createElement('div');
+            const rawScoreLabel = document.createElement('div');
+            rawScoreLabel.className = 'text-xs text-gray-500';
+            rawScoreLabel.textContent = '原始分';
+            const rawScoreValue = document.createElement('div');
+            rawScoreValue.textContent = subjectData.rawScore !== undefined ? 
+                (row[subjectData.rawScore] || '-') : '-';
+            rawScoreDiv.appendChild(rawScoreLabel);
+            rawScoreDiv.appendChild(rawScoreValue);
+            grid.appendChild(rawScoreDiv);
+            
+            // 等级
+            const levelDiv = document.createElement('div');
+            const levelLabel = document.createElement('div');
+            levelLabel.className = 'text-xs text-gray-500';
+            levelLabel.textContent = '等级';
+            const levelValue = document.createElement('div');
+            levelValue.textContent = subjectData.level !== undefined ? 
+                (row[subjectData.level] || '-') : '-';
+            levelDiv.appendChild(levelLabel);
+            levelDiv.appendChild(levelValue);
+            grid.appendChild(levelDiv);
+            
+            // 市排名
+            const rankDiv = document.createElement('div');
+            const rankLabel = document.createElement('div');
+            rankLabel.className = 'text-xs text-gray-500';
+            rankLabel.textContent = '市排名';
+            const rankValue = document.createElement('div');
+            rankValue.textContent = row[subjectData.rankCity] || '-';
+            rankDiv.appendChild(rankLabel);
+            rankDiv.appendChild(rankValue);
+            grid.appendChild(rankDiv);
+            
+            card.appendChild(grid);
+            container.appendChild(card);
         }
     </script>
 </body>
