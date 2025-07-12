@@ -682,20 +682,13 @@
             electiveSubjectsContainer.innerHTML = '';
             
             // 解析选科信息
-            const electiveStr = row[map.base.elective] || '';
-            const electiveSubjects = electiveStr.split('+')
-                .map(s => s.trim())
-                .filter(Boolean)
-                .filter(subj => subj !== map.base.d                .filter(subj => subj !== map.base.direction); // 排除已作为方向的科目
-                
-            // 添加方向主科
-            electiveSubjects.unshift(map.base.direction);
+            const electiveSubjects = (row[map.base.elective] || '').split('+').map(s => s.trim()).filter(Boolean);
             
-            // 确保科目唯一性
-            const uniqueSubjects = [...new Set(electiveSubjects)];
+            // 添加所有选考科目，包括方向主科
+            const mainSubject = map.base.direction === '物理' ? '物理' : '历史';
+            const allSubjects = [mainSubject, ...electiveSubjects].filter((s, i, arr) => arr.indexOf(s) === i);
             
-            // 为每个选考科目添加卡片
-            uniqueSubjects.forEach(subject => {
+            allSubjects.forEach(subject => {
                 const subjectKey = getSubjectKey(subject);
                 if (subjectKey) {
                     addElectiveSubjectCard(subjectKey, subject, row, map);
