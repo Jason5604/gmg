@@ -154,11 +154,7 @@
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">选科:</span>
                                     <span id="detailSubject" class="font-medium text-gray-800"></span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">方向:</span>
-                                    <span id="detailDirection" class="font-medium text-gray-800"></span>
-                                </div>
+                               
                             </div>
                         </div>
                         
@@ -705,11 +701,7 @@
             if (electiveSubjects.length === 0) {
                 electiveSubjects.push(map.base.direction);
                 // 根据方向添加可能的科目
-                if (map.base.direction === '物理') {
-                    electiveSubjects.push('化学', '生物', '政治', '地理');
-                } else {
-                    electiveSubjects.push('化学', '生物', '政治', '地理');
-                }
+                electiveSubjects.push('化学', '生物', '政治', '地理');
             }
             
             // 为每个选考科目添加卡片
