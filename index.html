@@ -1,4 +1,4 @@
-          <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -64,7 +64,7 @@
             <div class="hidden md:flex items-center space-x-6">
                 <span class="text-sm text-gray-600">
                     <i class="fa fa-database mr-1"></i>
-                    <span id="dataStatus">正在加载数据库...</span>
+                    <span id="dataStatus">正在加载数据...</span>
                 </span>
             </div>
         </div>
@@ -299,7 +299,7 @@
                     <i class="fa fa-exclamation-circle"></i>
                 </div>
                 <h2 class="text-xl font-semibold text-gray-800 mb-2">数据加载失败</h2>
-                <p class="text-gray-600 mb-6">无法加载数据库</p>
+                <p class="text-gray-600 mb-6">数据库加载失败</p>
                 <button id="manualLoadButton" 
                     class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 mx-auto">
                     <i class="fa fa-upload"></i>
@@ -457,25 +457,7 @@
         // 检测学生方向（物理/历史）
         function detectDirection(row) {
             const electiveStr = row[4] || '';
-            // 优先根据选科判断方向
-            if (electiveStr.includes('物理')) {
-                return 'physics';
-            } else if (electiveStr.includes('历史')) {
-                return 'history';
-            }
-            
-            // 如果选科无法判断，尝试根据成绩数据判断
-            const physicsScore = row[30]; // 物理成绩列索引
-            const historyScore = row[30]; // 历史成绩列索引（注意：物理和历史在Excel中可能是同一列，需要根据实际数据调整）
-            
-            if (physicsScore && !historyScore) {
-                return 'physics';
-            } else if (historyScore && !physicsScore) {
-                return 'history';
-            }
-            
-            // 默认返回物理方向
-            return 'physics';
+            return electiveStr.includes('物理') ? 'physics' : 'history';
         }
         
         // 解析共享字符串
@@ -701,8 +683,8 @@
             
             document.getElementById('mathScore').textContent = row[map.subjects.math.score] || '-';
             document.getElementById('mathRankCity').textContent = row[map.subjects.math.rankCity] || '-';
-            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool
-  document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
+            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool] || '-';
+            document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
             
             document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
             document.getElementById('englishRankCity').textContent = row[map.subjects.english.rankCity] || '-';
@@ -715,7 +697,7 @@
             
             // 解析选科信息
             const electiveStr = row[map.base.elective] || '';
-            const electiveSubjects = electiveStr.split(/[+、，]/) // 支持多种分隔符
+            const electiveSubjects = electiveStr.split('+')
                 .map(s => s.trim())
                 .filter(Boolean);
                 
