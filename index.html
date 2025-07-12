@@ -289,7 +289,7 @@
         <!-- 数据加载状态 -->
         <section id="loadingSection" class="text-center py-12">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary/30 border-t-primary"></div>
-            <p class="mt-4 text-gray-600">正在加载数据库，请稍候...</p>
+            <p class="mt-4 text-gray-600">正在加载本地数据(data.xlsx)，请稍候...</p>
         </section>
 
         <!-- 数据加载失败提示 -->
@@ -299,7 +299,7 @@
                     <i class="fa fa-exclamation-circle"></i>
                 </div>
                 <h2 class="text-xl font-semibold text-gray-800 mb-2">数据加载失败</h2>
-                <p class="text-gray-600 mb-6">无法加载数据库</p>
+                <p class="text-gray-600 mb-6">无法加载本地data.xlsx文件，请检查文件是否存在或尝试手动加载</p>
                 <button id="manualLoadButton" 
                     class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 mx-auto">
                     <i class="fa fa-upload"></i>
@@ -329,7 +329,7 @@
     <footer class="bg-gray-800 text-white py-8">
         <div class="container mx-auto px-4">
             <div class="text-center text-gray-400 text-sm">
-                <p>© 2025 梅州兴宁期末联考高一查分系统. @叶天哲保留所有权利.</p>
+                <p>© 2025 梅州兴宁期末联考高一查分系统. 保留所有权利.</p>
             </div>
         </div>
     </footer>
@@ -457,7 +457,25 @@
         // 检测学生方向（物理/历史）
         function detectDirection(row) {
             const electiveStr = row[4] || '';
-            return electiveStr.includes('物理') ? 'physics' : 'history';
+            // 优先根据选科判断方向
+            if (electiveStr.includes('物理')) {
+                return 'physics';
+            } else if (electiveStr.includes('历史')) {
+                return 'history';
+            }
+            
+            // 如果选科无法判断，尝试根据成绩数据判断
+            const physicsScore = row[30]; // 物理成绩列索引
+            const historyScore = row[30]; // 历史成绩列索引（注意：物理和历史在Excel中可能是同一列，需要根据实际数据调整）
+            
+            if (physicsScore && !historyScore) {
+                return 'physics';
+            } else if (historyScore && !physicsScore) {
+                return 'history';
+            }
+            
+            // 默认返回物理方向
+            return 'physics';
         }
         
         // 解析共享字符串
@@ -683,13 +701,13 @@
             
             document.getElementById('mathScore').textContent = row[map.subjects.math.score] || '-';
             document.getElementById('mathRankCity').textContent = row[map.subjects.math.rankCity] || '-';
-            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool] || '-';
+            document.getElementById('mathRankSchool').textContent = row[map.subjects.math.rankSchool            
             document.getElementById('mathRankClass').textContent = row[map.subjects.math.rankClass] || '-';
             
             document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
             document.getElementById('englishRankCity').textContent = row[map.subjects.english.rankCity] || '-';
-            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';            
-document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
+            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';
+            document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
             
             // 处理选考科目
             const electiveSubjectsContainer = document.getElementById('electiveSubjects');
@@ -697,7 +715,7 @@ document.getElementById('englishRankClass').textContent = row[map.subjects.engli
             
             // 解析选科信息
             const electiveStr = row[map.base.elective] || '';
-            const electiveSubjects = electiveStr.split('+')
+            const electiveSubjects = electiveStr.split(/[+、，]/) // 支持多种分隔符
                 .map(s => s.trim())
                 .filter(Boolean);
                 
