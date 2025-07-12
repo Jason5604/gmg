@@ -429,7 +429,37 @@
             showStatus('正在自动加载本地data.xlsx文件...', 'loading');
             loadXLSX();
         });
-        
+        function parseWithMultiHeader(sheet) {
+    const range = XLSX.utils.decode_range(sheet['!ref']);
+    const headers = [];
+    const data = [];
+
+    // 读取前两行作为表头
+    const row1 = [];
+    const row2 = [];
+    for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cell1 = sheet[XLSX.utils.encode_cell({ r: 0, c: C })];
+        const cell2 = sheet[XLSX.utils.encode_cell({ r: 1, c: C })];
+
+        const v1 = cell1 ? cell1.v.toString().trim() : '';
+        const v2 = cell2 ? cell2.v.toString().trim() : '';
+
+        const header = v1 && v2 ? `${v1}_${v2}` : v1 || v2 || `UNKNOWN_${C}`;
+        headers.push(header);
+    }
+
+    // 从第三行开始读取数据
+    for (let R = 2; R <= range.e.r; ++R) {
+        const row = {};
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cell = sheet[XLSX.utils.encode_cell({ r: R, c: C })];
+            row[headers[C]] = cell ? cell.v : '';
+        }
+        data.push(row);
+    }
+
+    return data;
+}
         // 使用fetch加载并解析XLSX文件
         async function loadXLSX() {
             try {
@@ -548,7 +578,7 @@
                         const worksheet = workbook.Sheets[sheetName];
                         
                         // 转换为JSON
-                        const sheetData = XLSX.utils.sheet_to_json(worksheet);
+                        const sheetData = parseWithMultiHeader(worksheet);
                         
                         // 将每个表格的数据添加到学生数据中
                         studentData = [...studentData, ...sheetData];
