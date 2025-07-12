@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>梅州兴宁期末联考高一查分系统 @叶天哲</title>
+    <title>梅州兴宁期末联考高一查分系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -289,7 +289,7 @@
         <!-- 数据加载状态 -->
         <section id="loadingSection" class="text-center py-12">
             <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary/30 border-t-primary"></div>
-            <p class="mt-4 text-gray-600">正在加载数据库，请稍候...</p>
+            <p class="mt-4 text-gray-600">正在加载本地数据(data.xlsx)，请稍候...</p>
         </section>
 
         <!-- 数据加载失败提示 -->
@@ -299,7 +299,7 @@
                     <i class="fa fa-exclamation-circle"></i>
                 </div>
                 <h2 class="text-xl font-semibold text-gray-800 mb-2">数据加载失败</h2>
-                <p class="text-gray-600 mb-6">无法加载数据库</p>
+                <p class="text-gray-600 mb-6">无法加载本地data.xlsx文件，请检查文件是否存在或尝试手动加载</p>
                 <button id="manualLoadButton" 
                     class="bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 flex items-center justify-center gap-2 mx-auto">
                     <i class="fa fa-upload"></i>
@@ -340,7 +340,7 @@
     <script>
         // 全局变量
         let combinedData = [];
-        let currentDirection = 'physics'; // 默认物理方向
+        
         // 物理方向和历史方向的字段索引映射表
         const columnMaps = {
             physics: {
@@ -430,9 +430,11 @@
 
                 // 自动选择第一个学生显示详情
                 if (combinedData.length > 0) {
+                    // 跳过标题行
+                    const firstStudentRow = combinedData.length > 1 ? combinedData[1] : combinedData[0];
                     const firstStudent = {
-                        row: combinedData[0],
-                        direction: 'physics' // 默认物理方向，实际应根据数据判断
+                        row: firstStudentRow,
+                        direction: detectDirection(firstStudentRow)
                     };
                     
                     // 初始化搜索界面
@@ -450,6 +452,12 @@
                 console.error("加载数据库失败:", error);
                 showLoadFailed();
             }
+        }
+        
+        // 检测学生方向（物理/历史）
+        function detectDirection(row) {
+            const electiveStr = row[4] || '';
+            return electiveStr.includes('物理') ? 'physics' : 'history';
         }
         
         // 解析共享字符串
@@ -554,9 +562,11 @@
 
                 // 自动选择第一个学生显示详情
                 if (combinedData.length > 0) {
+                    // 跳过标题行
+                    const firstStudentRow = combinedData.length > 1 ? combinedData[1] : combinedData[0];
                     const firstStudent = {
-                        row: combinedData[0],
-                        direction: 'physics' // 默认物理方向，实际应根据数据判断
+                        row: firstStudentRow,
+                        direction: detectDirection(firstStudentRow)
                     };
                     
                     // 初始化搜索界面
@@ -594,11 +604,14 @@
                 return;
             }
             
-            // 根据方向筛选数据
-            const results = combinedData.filter(row => {
-                return row[columnMaps[currentDirection].base.name]?.includes(query) || 
-                       row[columnMaps[currentDirection].base.examId]?.includes(query);
-            });
+            // 搜索数据并按方向分类
+            const results = combinedData
+                .filter(row => row[columnMaps.physics.base.name]?.includes(query) || 
+                              row[columnMaps.physics.base.examId]?.includes(query))
+                .map(row => ({
+                    row,
+                    direction: detectDirection(row)
+                }));
             
             if (results.length > 0) {
                 displayResults(results);
@@ -607,7 +620,7 @@
                 
                 // 自动显示第一个结果的详情
                 if (results.length > 0) {
-                    showStudentDetail({row: results[0], direction: currentDirection});
+                    showStudentDetail(results[0]);
                 }
             } else {
                 document.getElementById('resultSection').classList.add('hidden');
@@ -620,11 +633,12 @@
             resultTable.innerHTML = "";
             resultCount.textContent = results.length;
             
-            results.forEach((row, index) => {
-                const map = columnMaps[currentDirection];
+            results.forEach((item, index) => {
+                const row = item.row;
+                const map = columnMaps[item.direction];
                 const tr = document.createElement('tr');
                 tr.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
-                tr.onclick = () => showStudentDetail({row, direction: currentDirection});
+                tr.onclick = () => showStudentDetail(item);
                 
                 tr.innerHTML = `
                     <td class="px-6 py-4">${row[map.base.school] || '-'}</td>
@@ -674,21 +688,32 @@
             
             document.getElementById('englishScore').textContent = row[map.subjects.english.score] || '-';
             document.getElementById('englishRankCity').textContent = row[map.subjects.english.rankCity] || '-';
-            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';
-            document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
+            document.getElementById('englishRankSchool').textContent = row[map.subjects.english.rankSchool] || '-';            
+document.getElementById('englishRankClass').textContent = row[map.subjects.english.rankClass] || '-';
             
             // 处理选考科目
             const electiveSubjectsContainer = document.getElementById('electiveSubjects');
             electiveSubjectsContainer.innerHTML = '';
             
             // 解析选科信息
-            const electiveSubjects = (row[map.base.elective] || '').split('+').map(s => s.trim()).filter(Boolean);
+            const electiveStr = row[map.base.elective] || '';
+            const electiveSubjects = electiveStr.split('+')
+                .map(s => s.trim())
+                .filter(Boolean);
+                
+            // 如果没有明确的选科信息，尝试从方向推断
+            if (electiveSubjects.length === 0) {
+                electiveSubjects.push(map.base.direction);
+                // 根据方向添加可能的科目
+                if (map.base.direction === '物理') {
+                    electiveSubjects.push('化学', '生物', '政治', '地理');
+                } else {
+                    electiveSubjects.push('化学', '生物', '政治', '地理');
+                }
+            }
             
-            // 添加所有选考科目，包括方向主科
-            const mainSubject = map.base.direction === '物理' ? '物理' : '历史';
-            const allSubjects = [mainSubject, ...electiveSubjects].filter((s, i, arr) => arr.indexOf(s) === i);
-            
-            allSubjects.forEach(subject => {
+            // 为每个选考科目添加卡片
+            electiveSubjects.forEach(subject => {
                 const subjectKey = getSubjectKey(subject);
                 if (subjectKey) {
                     addElectiveSubjectCard(subjectKey, subject, row, map);
