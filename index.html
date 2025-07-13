@@ -83,7 +83,7 @@
     <!-- 头部 -->
     <header class="text-center mb-12 fade-in">
       <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary mb-4">学生成绩查询系统</h1>
-      <p class="text-gray-600 text-lg max-w-2xl mx-auto">输入您的考号和姓名，查询最新考试成绩及排名信息</p>
+      <p class="text-gray-600 text-lg max-w-2xl mx-auto">输入考号或姓名，查询最新考试成绩及排名信息</p>
     </header>
     
     <!-- 查询区域 -->
@@ -91,26 +91,32 @@
       <form id="searchForm" class="space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label for="examId" class="block text-gray-700 font-medium mb-2">考号 <span class="text-red-500">*</span></label>
+            <label for="searchValue" class="block text-gray-700 font-medium mb-2">考号或姓名 <span class="text-red-500">*</span></label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                <i class="fa fa-id-card"></i>
+                <i class="fa fa-search"></i>
               </span>
-              <input type="text" id="examId" name="examId" required
+              <input type="text" id="searchValue" name="searchValue" required
                 class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-300"
-                placeholder="请输入考号">
+                placeholder="请输入考号或姓名">
             </div>
           </div>
           
           <div>
-            <label for="name" class="block text-gray-700 font-medium mb-2">姓名 <span class="text-red-500">*</span></label>
+            <label for="searchType" class="block text-gray-700 font-medium mb-2">查询方式</label>
             <div class="relative">
               <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                <i class="fa fa-user"></i>
+                <i class="fa fa-filter"></i>
               </span>
-              <input type="text" id="name" name="name" required
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-300"
-                placeholder="请输入姓名">
+              <select id="searchType" name="searchType" 
+                class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-300 appearance-none bg-white">
+                <option value="both">考号或姓名</option>
+                <option value="examId">仅考号</option>
+                <option value="name">仅姓名</option>
+              </select>
+              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                <i class="fa fa-chevron-down"></i>
+              </div>
             </div>
           </div>
         </div>
@@ -125,6 +131,12 @@
       
       <!-- 状态提示 -->
       <div id="status" class="mt-4 hidden"></div>
+      
+      <!-- 重名选择区域 -->
+      <div id="multipleResults" class="mt-6 hidden">
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">找到多个同名学生，请选择：</h3>
+        <div id="studentList" class="space-y-3"></div>
+      </div>
     </section>
     
     <!-- 结果展示区域 -->
@@ -466,11 +478,13 @@
     
     // DOM元素
     const searchForm = document.getElementById('searchForm');
-    const examIdInput = document.getElementById('examId');
-    const nameInput = document.getElementById('name');
+    const searchValue = document.getElementById('searchValue');
+    const searchType = document.getElementById('searchType');
     const resultSection = document.getElementById('resultSection');
     const statusElement = document.getElementById('status');
     const resetBtn = document.getElementById('resetBtn');
+    const multipleResults = document.getElementById('multipleResults');
+    const studentList = document.getElementById('studentList');
     
     // 页面加载时加载数据
     document.addEventListener('DOMContentLoaded', () => {
@@ -605,35 +619,88 @@
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
-      const examId = examIdInput.value.trim();
-      const name = nameInput.value.trim();
+      const value = searchValue.value.trim();
+      const type = searchType.value;
       
-      if (!examId || !name) {
-        showStatus('请输入考号和姓名', 'error');
+      if (!value) {
+        showStatus('请输入考号或姓名', 'error');
         return;
       }
       
-      // 查找学生数据
-      const student = findStudent(examId, name);
+      // 根据选择的查询方式查找学生
+      let results = [];
       
-      if (student) {
+      switch (type) {
+        case 'examId':
+          results = studentData.filter(s => s['考号']?.toString() === value);
+          break;
+        case 'name':
+          results = studentData.filter(s => s['姓名']?.toString() === value);
+          break;
+        case 'both':
+        default:
+          // 先尝试考号匹配
+          results = studentData.filter(s => s['考号']?.toString() === value);
+          
+          // 如果没有找到，再尝试姓名匹配
+          if (results.length === 0) {
+            results = studentData.filter(s => s['姓名']?.toString() === value);
+          }
+          break;
+      }
+      
+      if (results.length === 0) {
+        showStatus('未找到匹配的学生信息，请检查输入是否正确', 'error');
+        resultSection.classList.add('hidden');
+        multipleResults.classList.add('hidden');
+      } else if (results.length === 1) {
         showStatus('', '');
-        displayResult(student);
+        multipleResults.classList.add('hidden');
+        displayResult(results[0]);
         resultSection.classList.remove('hidden');
         // 滚动到结果区域
         resultSection.scrollIntoView({ behavior: 'smooth' });
       } else {
-        showStatus('未找到匹配的学生信息，请检查考号和姓名是否正确', 'error');
+        // 多个结果，显示选择列表
+        showStatus('', '');
         resultSection.classList.add('hidden');
+        showStudentList(results);
+        multipleResults.classList.remove('hidden');
+        // 滚动到选择区域
+        multipleResults.scrollIntoView({ behavior: 'smooth' });
       }
     });
     
-    // 查找学生
-    function findStudent(examId, name) {
-      return studentData.find(s => 
-        s['考号']?.toString() === examId && 
-        s['姓名']?.toString() === name
-      );
+    // 显示学生列表供选择
+    function showStudentList(students) {
+      studentList.innerHTML = '';
+      
+      students.forEach(student => {
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition duration-200 cursor-pointer';
+        card.innerHTML = `
+          <div class="flex items-center">
+            <div class="mr-4 bg-primary text-white p-2 rounded-full">
+              <i class="fa fa-user"></i>
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">${student['姓名']}</p>
+              <p class="text-sm text-gray-600">考号: ${student['考号']}</p>
+              <p class="text-sm text-gray-600">学校: ${student['学校'] || '-'}, 班级: ${student['班级'] || '-'}</p>
+            </div>
+          </div>
+        `;
+        
+        card.addEventListener('click', () => {
+          displayResult(student);
+          resultSection.classList.remove('hidden');
+          multipleResults.classList.add('hidden');
+          // 滚动到结果区域
+          resultSection.scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        studentList.appendChild(card);
+      });
     }
     
     // 显示查询结果
@@ -661,8 +728,9 @@
     resetBtn.addEventListener('click', () => {
       searchForm.reset();
       resultSection.classList.add('hidden');
+      multipleResults.classList.add('hidden');
       showStatus('', '');
-      examIdInput.focus();
+      searchValue.focus();
     });
   </script>
 </body>
