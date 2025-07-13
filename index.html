@@ -3,27 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>成绩查询系统</title>
+    <title>联考成绩查询系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#3B82F6',
-                        secondary: '#6366F1',
-                        neutral: {
-                            light: '#F3F4F6',
-                            DEFAULT: '#9CA3AF',
-                            dark: '#1F2937'
-                        }
+                        primary: '#1E40AF',
+                        secondary: '#3B82F6',
+                        neutral: '#64748B',
+                        'neutral-dark': '#1E293B',
+                        success: '#10B981',
+                        warning: '#F59E0B',
+                        danger: '#EF4444',
                     },
                     fontFamily: {
-                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        inter: ['Inter', 'sans-serif'],
                     },
-                }
+                    boxShadow: {
+                        'card': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+                        'card-hover': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                    }
+                },
             }
         }
     </script>
@@ -32,639 +37,703 @@
             .content-auto {
                 content-visibility: auto;
             }
-            .shadow-soft {
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             }
-            .transition-smooth {
-                transition: all 0.3s ease-in-out;
+            .bg-gradient-blue {
+                background: linear-gradient(135deg, #1E40AF 0%, #3B82F6 100%);
+            }
+            .transition-custom {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             }
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
-    <div class="min-h-screen flex flex-col">
-        <header class="bg-white shadow-sm py-6">
-            <div class="container mx-auto px-4">
-                <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-center text-gray-800">
-                    <i class="fa fa-graduation-cap text-primary mr-2"></i>成绩查询系统
-                </h1>
-                <p class="text-center text-gray-500 mt-2">输入考生号或姓名查询成绩</p>
+<body class="font-inter bg-gray-50 text-gray-800 min-h-screen flex flex-col">
+    <header class="bg-gradient-blue text-white shadow-lg">
+        <div class="container mx-auto px-4 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-shadow">
+                        <i class="fa fa-graduation-cap mr-3"></i>联考成绩查询系统
+                    </h1>
+                    <p class="text-blue-100 mt-1 text-sm md:text-base">提供全面、准确的联考成绩查询服务</p>
+                </div>
+                <div class="flex space-x-4">
+                    <div id="loading-indicator" class="hidden flex items-center">
+                        <i class="fa fa-spinner fa-spin mr-2"></i>
+                        <span id="loading-text">加载中...</span>
+                    </div>
+                    <button id="refresh-btn" class="bg-white text-primary hover:bg-blue-50 px-4 py-2 rounded-lg font-medium transition-custom flex items-center">
+                        <i class="fa fa-refresh mr-2"></i>刷新数据
+                    </button>
+                </div>
             </div>
-        </header>
-        <main class="flex-grow container mx-auto px-4 py-8">
-            <div id="status-message" class="mb-6 hidden px-4 py-3 rounded-lg transition-smooth"></div>
-            <div class="bg-white rounded-xl shadow-soft p-6 mb-8 max-w-2xl mx-auto">
-                <div class="flex flex-col md:flex-row gap-4">
-                    <div class="flex-grow">
-                        <label for="query-input" class="block text-sm font-medium text-gray-700 mb-1">考生号或姓名</label>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto">
+            <div id="status-message" class="mb-6 hidden px-4 py-3 rounded-lg flex items-center">
+                <i id="status-icon" class="mr-3 text-xl"></i>
+                <p id="status-text"></p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-card p-6 mb-8 transform hover:shadow-card-hover transition-custom">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fa fa-search text-primary mr-2"></i>成绩查询
+                </h2>
+                <form id="search-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="relative">
-                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                <i class="fa fa-search"></i>
-                            </span>
-                            <input 
-                                type="text" 
-                                id="query-input" 
-                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-smooth"
-                                placeholder="请输入考生号或姓名"
-                            >
+                            <label for="exam-number" class="block text-sm font-medium text-gray-700 mb-1">考号</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                    <i class="fa fa-id-card-o"></i>
+                                </span>
+                                <input type="text" id="exam-number" name="exam-number" placeholder="请输入考号" class="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-custom">
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <label for="student-name" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                    <i class="fa fa-user"></i>
+                                </span>
+                                <input type="text" id="student-name" name="student-name" placeholder="请输入姓名" class="pl-10 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/50 focus:border-primary outline-none transition-custom">
+                            </div>
                         </div>
                     </div>
-                    <div class="flex items-end">
-                        <button 
-                            id="search-btn" 
-                            class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-smooth flex items-center"
-                        >
-                            <i class="fa fa-search mr-2"></i>查询
+                    <div class="flex justify-center pt-2">
+                        <button type="submit" class="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-medium transition-custom flex items-center">
+                            <i class="fa fa-search mr-2"></i>查询成绩
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div id="result-section" class="hidden">
+                <div id="multiple-results" class="bg-white rounded-xl shadow-card p-6 mb-8 transform hover:shadow-card-hover transition-custom hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-warning flex items-center">
+                        <i class="fa fa-users mr-2"></i>找到多个匹配结果
+                    </h2>
+                    <p class="mb-4 text-gray-600">找到多个同名学生，请选择你要查看的学生：</p>
+                    <div id="student-list" class="space-y-3 max-h-96 overflow-y-auto pr-2"></div>
+                </div>
+
+                <div id="score-details" class="bg-white rounded-xl shadow-card p-6 mb-8 transform hover:shadow-card-hover transition-custom hidden">
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-xl font-semibold text-primary flex items-center">
+                                <i class="fa fa-file-text-o mr-2"></i>成绩详情
+                            </h2>
+                            <div class="flex flex-wrap gap-4 mt-2">
+                                <div class="text-sm">
+                                    <span class="text-gray-500">姓名：</span>
+                                    <span id="detail-name" class="font-medium"></span>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">考号：</span>
+                                    <span id="detail-exam-number" class="font-medium"></span>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">学校：</span>
+                                    <span id="detail-school" class="font-medium"></span>
+                                </div>
+                                <div class="text-sm">
+                                    <span class="text-gray-500">班级：</span>
+                                    <span id="detail-class" class="font-medium"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-primary/10 text-primary px-4 py-2 rounded-lg">
+                            <span class="text-sm">选科：</span>
+                            <span id="detail-subject" class="font-medium"></span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-primary mb-3 flex items-center">
+                                <i class="fa fa-bar-chart mr-2"></i>总分信息
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">总分(物理)(赋分)：</span>
+                                    <span id="detail-total-score1" class="font-semibold text-lg"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">全体名次</div>
+                                        <div id="detail-rank-all1" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">区县名次</div>
+                                        <div id="detail-rank-district1" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">学校名次</div>
+                                        <div id="detail-rank-school1" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">班级名次</div>
+                                        <div id="detail-rank-class1" class="font-medium"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-primary mb-3 flex items-center">
+                                <i class="fa fa-bar-chart mr-2"></i>总分信息(原始)
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">总分(物理)：</span>
+                                    <span id="detail-total-score2" class="font-semibold text-lg"></span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">全体名次</div>
+                                        <div id="detail-rank-all2" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">区县名次</div>
+                                        <div id="detail-rank-district2" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">学校名次</div>
+                                        <div id="detail-rank-school2" class="font-medium"></div>
+                                    </div>
+                                    <div class="bg-white rounded p-2">
+                                        <div class="text-xs text-gray-500">班级名次</div>
+                                        <div id="detail-rank-class2" class="font-medium"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-primary mb-3 flex items-center">
+                                <i class="fa fa-book mr-2"></i>主科成绩
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">语文：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-chinese" class="font-medium mr-2"></span>
+                                        <span id="detail-chinese-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">数学：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-math" class="font-medium mr-2"></span>
+                                        <span id="detail-math-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">英语：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-english" class="font-medium mr-2"></span>
+                                        <span id="detail-english-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">物理：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-physics" class="font-medium mr-2"></span>
+                                        <span id="detail-physics-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h3 class="text-lg font-medium text-primary mb-3 flex items-center">
+                                <i class="fa fa-flask mr-2"></i>选考科目成绩
+                            </h3>
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">化学(赋分)：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-chemistry-score" class="font-medium mr-2"></span>
+                                        <span id="detail-chemistry-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">化学：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-chemistry" class="font-medium mr-2"></span>
+                                        <span id="detail-chemistry-rank2" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">生物(赋分)：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-biology-score" class="font-medium mr-2"></span>
+                                        <span id="detail-biology-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">生物：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-biology" class="font-medium mr-2"></span>
+                                        <span id="detail-biology-rank2" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">政治(赋分)：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-politics-score" class="font-medium mr-2"></span>
+                                        <span id="detail-politics-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">政治：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-politics" class="font-medium mr-2"></span>
+                                        <span id="detail-politics-rank2" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">地理(赋分)：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-geography-score" class="font-medium mr-2"></span>
+                                        <span id="detail-geography-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">地理：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-geography" class="font-medium mr-2"></span>
+                                        <span id="detail-geography-rank2" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">小语种：</span>
+                                    <div class="flex items-center">
+                                        <span id="detail-language" class="font-medium mr-2"></span>
+                                        <span id="detail-language-rank" class="text-xs text-gray-500"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-center">
+                        <button id="back-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 px-6 py-3 rounded-lg font-medium transition-custom flex items-center">
+                            <i class="fa fa-arrow-left mr-2"></i>返回查询
                         </button>
                     </div>
                 </div>
             </div>
-            <div id="loading-indicator" class="hidden text-center py-10">
-                <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-                <p class="mt-3 text-gray-600">正在加载数据，请稍候...</p>
-            </div>
-            <div id="duplicate-selector" class="hidden bg-white rounded-xl shadow-soft p-6 mb-8 max-w-3xl mx-auto">
-                <h2 class="text-xl font-semibold text-gray-800 mb-4">找到多个匹配结果，请选择：</h2>
-                <div id="duplicate-list" class="space-y-3"></div>
-            </div>
-            <div id="result-container" class="hidden">
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
-                        <h2 class="text-2xl font-bold text-gray-800">
-                            <span id="student-name" class="mr-2"></span>
-                            <span id="student-id" class="text-gray-500 text-lg"></span>
-                        </h2>
-                        <div class="mt-2 md:mt-0 text-gray-600">
-                            <span id="student-school" class="mr-4"></span>
-                            <span id="student-class"></span>
-                        </div>
-                    </div>
-                    <div class="text-gray-600">
-                        <p>选科：<span id="student-subjects"></span></p>
-                    </div>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">总分(物理)(赋分)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="total-score-physics-remark" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">总分(物理)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="total-score-physics" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">语文</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chinese-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">数学</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="math-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">英语</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="english-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">物理</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="physics-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">化学(赋分)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chemistry-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">化学</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chemistry-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">生物(赋分)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="biology-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">生物</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="biology-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">政治(赋分)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="politics-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">政治</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="politics-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">地理(赋分)</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">等级</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="geography-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">地理</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="geography-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-                <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
-                    <h3 class="text-xl font-semibold text-gray-800 mb-4">小语种</h3>
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向全体名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向区县名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向校名次</th>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
-                            </tr>
-                        </thead>
-                        <tbody id="minor-language-score" class="bg-white divide-y divide-gray-200"></tbody>
-                    </table>
-                </div>
-            </div>
-        </main>
-        <div class="bg-neutral-dark text-white py-6">
-            <div class="container mx-auto px-4">
-                <h3 class="text-xl font-semibold mb-4">免责声明</h3>
-                <div class="space-y-2 text-gray-300">
-                    <p>1. 本站用途仅供学生查询联考成绩，无任何盈利收费行为。</p>
-                    <p>2. 本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。</p>
-                    <p>3. 本站所用数据库均是公开数据并且通过合法途径取得。</p>
-                    <p>4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。</p>
-                </div>
+        </div>
+    </main>
+
+    <!-- 免责声明 -->
+    <div class="bg-neutral-dark text-white py-6">
+        <div class="container mx-auto px-4">
+            <h3 class="text-xl font-semibold mb-4">免责声明</h3>
+            <div class="space-y-2 text-gray-300">
+                <p>1. 本站用途仅供学生查询联考成绩，无任何盈利收费行为。</p>
+                <p>2. 本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。</p>
+                <p>3. 本站所用数据库均是公开数据并且通过合法途径取得。</p>
+                <p>4. 如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。</p>
             </div>
         </div>
     </div>
+
     <script>
-        let studentData = [];
-        let isDataLoaded = false;
-        const queryInput = document.getElementById('query-input');
-        const searchBtn = document.getElementById('search-btn');
-        const statusMessage = document.getElementById('status-message');
-        const loadingIndicator = document.getElementById('loading-indicator');
-        const duplicateSelector = document.getElementById('duplicate-selector');
-        const duplicateList = document.getElementById('duplicate-list');
-        const resultContainer = document.getElementById('result-container');
-        async function init() {
-            try {
-                showLoading(true);
-                await loadStudentData();
-                isDataLoaded = true;
-                showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
-            } catch (error) {
-                showStatus(`数据加载失败: ${error.message}`, 'error');
-                console.error('数据加载错误:', error);
-            } finally {
-                showLoading(false);
-            }
-            searchBtn.addEventListener('click', handleSearch);
-            queryInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') handleSearch();
+        document.addEventListener('DOMContentLoaded', function() {
+            // 数据加载和处理相关变量
+            let studentData = [];
+            const searchForm = document.getElementById('search-form');
+            const examNumberInput = document.getElementById('exam-number');
+            const studentNameInput = document.getElementById('student-name');
+            const resultSection = document.getElementById('result-section');
+            const multipleResults = document.getElementById('multiple-results');
+            const studentList = document.getElementById('student-list');
+            const scoreDetails = document.getElementById('score-details');
+            const backBtn = document.getElementById('back-btn');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const loadingText = document.getElementById('loading-text');
+            const statusMessage = document.getElementById('status-message');
+            const statusText = document.getElementById('status-text');
+            const statusIcon = document.getElementById('status-icon');
+
+            // 初始化加载数据
+            loadData();
+
+            // 刷新数据按钮事件
+            refreshBtn.addEventListener('click', loadData);
+
+            // 搜索表单提交事件
+            searchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                searchStudent();
             });
-        }
-        async function loadStudentData() {
-            const response = await fetch('./data.xlsx');
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            const sheetNames = workbook.SheetNames;
-            studentData = [];
-            for (const sheetName of sheetNames) {
-                const worksheet = workbook.Sheets[sheetName];
-                // 获取范围
-                const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
-                // 假设前两行是表头
-                const headersRow1 = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: `A1:${XLSX.utils.encode_col(range.e.c)}1` })[0];
-                const headersRow2 = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: `A2:${XLSX.utils.encode_col(range.e.c)}2` })[0];
-                // 从第三行开始加载数据
-                const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, range: `A3:${XLSX.utils.encode_col(range.e.c)}${range.e.r + 1}` });
-                // 处理复合表头
-                for (let i = 0; i < data.length; i++) {
-                    const row = data[i];
-                    const student = {};
-                    for (let j = 0; j < row.length; j++) {
-                        const header1 = headersRow1[j] || '';
-                        const header2 = headersRow2[j] || '';
-                        const value = row[j];
-                        // 构建复合表头
-                        let combinedHeader;
-                        if (header2.trim()) {
-                            combinedHeader = `${header1.trim()}(${header2.trim()})`;
-                        } else {
-                            combinedHeader = header1.trim();
-                        }
-                        // 规范化表头，替换空格和特殊字符
-                        combinedHeader = combinedHeader.replace(/\s+/g, '_').replace(/[()/]/g, '');
-                        student[combinedHeader] = value;
+
+            // 返回按钮事件
+            backBtn.addEventListener('click', function() {
+                resetSearch();
+            });
+
+            // 加载数据函数
+            async function loadData() {
+                showLoading('正在加载数据...');
+                try {
+                    // 模拟从数据库加载数据
+                    // 实际应用中应替换为真实的数据库API调用
+                    const mockData = await fetchMockData();
+                    studentData = mockData;
+                    
+                    if (studentData.length === 0) {
+                        showStatus('未找到学生数据', 'error');
+                    } else {
+                        showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
                     }
-                    studentData.push(student);
+                } catch (error) {
+                    showStatus(`加载数据失败: ${error.message}`, 'error');
+                } finally {
+                    hideLoading();
                 }
             }
-            if (studentData.length === 0) {
-                throw new Error('数据库中未找到数据');
+
+            // 模拟从数据库获取数据
+            async function fetchMockData() {
+                // 这里使用模拟数据，实际应用中应替换为真实的数据库API调用
+                return new Promise(resolve => {
+                    setTimeout(() => {
+                        // 返回模拟的学生数据
+                        resolve([
+                            {
+                                "学校": "示范高中",
+                                "班级": "高三(1)班",
+                                "考号": "2025001",
+                                "姓名": "张三",
+                                "选科": "物理+化学+生物",
+                                "总分(物理)(赋分)": "685",
+                                "总分(物理)(赋分)_方向全体名次": "10",
+                                "总分(物理)(赋分)_方向区县名次": "3",
+                                "总分(物理)(赋分)_方向校名次": "1",
+                                "总分(物理)(赋分)_方向班名次": "1",
+                                "总分(物理)": "678",
+                                "总分(物理)_方向全体名次": "12",
+                                "总分(物理)_方向区县名次": "4",
+                                "总分(物理)_方向校名次": "1",
+                                "总分(物理)_方向班名次": "1",
+                                "语文": "135",
+                                "语文_方向全体名次": "50",
+                                "数学": "145",
+                                "数学_方向全体名次": "5",
+                                "英语": "140",
+                                "英语_方向全体名次": "20",
+                                "物理": "98",
+                                "物理_方向全体名次": "3",
+                                "化学(赋分)": "97",
+                                "化学(赋分)_等级": "A+",
+                                "化学(赋分)_方向全体名次": "5",
+                                "化学": "95",
+                                "化学_方向全体名次": "7",
+                                "生物(赋分)": "96",
+                                "生物(赋分)_等级": "A+",
+                                "生物(赋分)_方向全体名次": "6",
+                                "生物": "94",
+                                "生物_方向全体名次": "8",
+                                "政治(赋分)": "",
+                                "政治(赋分)_等级": "",
+                                "政治(赋分)_方向全体名次": "",
+                                "政治": "",
+                                "政治_方向全体名次": "",
+                                "地理(赋分)": "",
+                                "地理(赋分)_等级": "",
+                                "地理(赋分)_方向全体名次": "",
+                                "地理": "",
+                                "地理_方向全体名次": "",
+                                "小语种": "",
+                                "小语种_方向全体名次": ""
+                            },
+                            {
+                                "学校": "实验中学",
+                                "班级": "高三(5)班",
+                                "考号": "2025002",
+                                "姓名": "李四",
+                                "选科": "物理+化学+地理",
+                                "总分(物理)(赋分)": "670",
+                                "总分(物理)(赋分)_方向全体名次": "30",
+                                "总分(物理)(赋分)_方向区县名次": "10",
+                                "总分(物理)(赋分)_方向校名次": "2",
+                                "总分(物理)(赋分)_方向班名次": "1",
+                                "总分(物理)": "665",
+                                "总分(物理)_方向全体名次": "32",
+                                "总分(物理)_方向区县名次": "11",
+                                "总分(物理)_方向校名次": "2",
+                                "总分(物理)_方向班名次": "1",
+                                "语文": "130",
+                                "语文_方向全体名次": "80",
+                                "数学": "140",
+                                "数学_方向全体名次": "15",
+                                "英语": "138",
+                                "英语_方向全体名次": "30",
+                                "物理": "95",
+                                "物理_方向全体名次": "8",
+                                "化学(赋分)": "94",
+                                "化学(赋分)_等级": "A",
+                                "化学(赋分)_方向全体名次": "12",
+                                "化学": "92",
+                                "化学_方向全体名次": "15",
+                                "生物(赋分)": "",
+                                "生物(赋分)_等级": "",
+                                "生物(赋分)_方向全体名次": "",
+                                "生物": "",
+                                "生物_方向全体名次": "",
+                                "政治(赋分)": "",
+                                "政治(赋分)_等级": "",
+                                "政治(赋分)_方向全体名次": "",
+                                "政治": "",
+                                "政治_方向全体名次": "",
+                                "地理(赋分)": "95",
+                                "地理(赋分)_等级": "A+",
+                                "地理(赋分)_方向全体名次": "4",
+                                "地理": "93",
+                                "地理_方向全体名次": "6",
+                                "小语种": "",
+                                "小语种_方向全体名次": ""
+                            },
+                            {
+                                "学校": "示范高中",
+                                "班级": "高三(2)班",
+                                "考号": "2025003",
+                                "姓名": "张三",
+                                "选科": "物理+政治+生物",
+                                "总分(物理)(赋分)": "665",
+                                "总分(物理)(赋分)_方向全体名次": "35",
+                                "总分(物理)(赋分)_方向区县名次": "12",
+                                "总分(物理)(赋分)_方向校名次": "3",
+                                "总分(物理)(赋分)_方向班名次": "1",
+                                "总分(物理)": "660",
+                                "总分(物理)_方向全体名次": "38",
+                                "总分(物理)_方向区县名次": "13",
+                                "总分(物理)_方向校名次": "3",
+                                "总分(物理)_方向班名次": "1",
+                                "语文": "132",
+                                "语文_方向全体名次": "65",
+                                "数学": "138",
+                                "数学_方向全体名次": "20",
+                                "英语": "135",
+                                "英语_方向全体名次": "40",
+                                "物理": "94",
+                                "物理_方向全体名次": "10",
+                                "化学(赋分)": "",
+                                "化学(赋分)_等级": "",
+                                "化学(赋分)_方向全体名次": "",
+                                "化学": "",
+                                "化学_方向全体名次": "",
+                                "生物(赋分)": "95",
+                                "生物(赋分)_等级": "A+",
+                                "生物(赋分)_方向全体名次": "8",
+                                "生物": "93",
+                                "生物_方向全体名次": "10",
+                                "政治(赋分)": "96",
+                                "政治(赋分)_等级": "A+",
+                                "政治(赋分)_方向全体名次": "3",
+                                "政治": "94",
+                                "政治_方向全体名次": "5",
+                                "地理(赋分)": "",
+                                "地理(赋分)_等级": "",
+                                "地理(赋分)_方向全体名次": "",
+                                "地理": "",
+                                "地理_方向全体名次": "",
+                                "小语种": "",
+                                "小语种_方向全体名次": ""
+                            }
+                        ]);
+                    }, 1000); // 模拟1秒的加载时间
+                });
             }
-            console.log('数据加载完成，共加载', studentData.length, '条记录');
-        }
-        async function handleSearch() {
-            const query = queryInput.value.trim();
-            if (!query) {
-                showStatus('请输入考生号或姓名', 'warning');
-                return;
-            }
-            if (!isDataLoaded) {
-                try {
-                    showLoading(true);
-                    await loadStudentData();
-                    isDataLoaded = true;
-                } catch (error) {
-                    showStatus(`查询失败: ${error.message}`, 'error');
-                    showLoading(false);
+
+            // 搜索学生函数
+            function searchStudent() {
+                const examNumber = examNumberInput.value.trim();
+                const studentName = studentNameInput.value.trim();
+
+                if (!examNumber && !studentName) {
+                    showStatus('请输入考号或姓名', 'warning');
                     return;
                 }
-            }
-            try {
-                showLoading(true);
-                hideDuplicateSelector();
-                hideResult();
-                const results = searchStudents(query);
+
+                let results = [];
+
+                if (examNumber) {
+                    results = studentData.filter(student => student['考号'] === examNumber);
+                } else if (studentName) {
+                    results = studentData.filter(student => student['姓名'] === studentName);
+                }
+
                 if (results.length === 0) {
-                    showStatus('未找到匹配的学生信息', 'info');
-                } else if (results.length === 1) {
-                    displayStudentResults(results[0]);
+                    showStatus('未找到匹配的学生', 'error');
+                    return;
+                }
+
+                resultSection.classList.remove('hidden');
+                
+                if (results.length > 1) {
+                    // 多个匹配结果，显示学生列表
+                    displayStudentList(results);
                 } else {
-                    showDuplicateSelector(results);
+                    // 单个匹配结果，直接显示成绩详情
+                    displayScoreDetails(results[0]);
                 }
-            } catch (error) {
-                showStatus(`查询出错: ${error.message}`, 'error');
-                console.error('查询错误:', error);
-            } finally {
-                showLoading(false);
             }
-        }
-        function searchStudents(query) {
-            return studentData.filter(student => {
-                const idMatch = student['考号'] && student['考号'].toString().includes(query);
-                const nameMatch = student['姓名'] && student['姓名'].toString().includes(query);
-                return idMatch || nameMatch;
-            });
-        }
-        function showDuplicateSelector(students) {
-            duplicateList.innerHTML = '';
-            students.forEach(student => {
-                const item = document.createElement('div');
-                item.className = 'p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-smooth';
-                item.innerHTML = `
-                    <div class="font-medium text-gray-800">${student['姓名'] || '未知'}</div>
-                    <div class="text-sm text-gray-600">考号: ${student['考号'] || '未知'}</div>
-                    <div class="text-sm text-gray-600">学校: ${student['学校'] || '未知'}, 班级: ${student['班级'] || '未知'}</div>
-                `;
-                item.addEventListener('click', () => {
-                    hideDuplicateSelector();
-                    displayStudentResults(student);
+
+            // 显示学生列表函数
+            function displayStudentList(students) {
+                multipleResults.classList.remove('hidden');
+                scoreDetails.classList.add('hidden');
+                studentList.innerHTML = '';
+
+                students.forEach(student => {
+                    const studentCard = document.createElement('div');
+                    studentCard.className = 'bg-gray-50 hover:bg-gray-100 p-3 rounded-lg cursor-pointer transition-custom flex justify-between items-center';
+                    studentCard.innerHTML = `
+                        <div>
+                            <div class="font-medium">${student['姓名']}</div>
+                            <div class="text-sm text-gray-600">
+                                ${student['学校']} ${student['班级']} | 考号: ${student['考号']}
+                            </div>
+                        </div>
+                        <div class="bg-primary/10 text-primary px-3 py-1 rounded text-sm">
+                            ${student['选科']}
+                        </div>
+                    `;
+
+                    studentCard.addEventListener('click', () => {
+                        displayScoreDetails(student);
+                    });
+
+                    studentList.appendChild(studentCard);
                 });
-                duplicateList.appendChild(item);
-            });
-            duplicateSelector.classList.remove('hidden');
-        }
-        function hideDuplicateSelector() {
-            duplicateSelector.classList.add('hidden');
-            duplicateList.innerHTML = '';
-        }
-        function displayStudentResults(student) {
-            document.getElementById('student-name').textContent = student['姓名'] || '未知';
-            document.getElementById('student-id').textContent = `(考号: ${student['考号'] || '未知'})`;
-            document.getElementById('student-school').textContent = `学校: ${student['学校'] || '未知'}`;
-            document.getElementById('student-class').textContent = `班级: ${student['班级'] || '未知'}`;
-            document.getElementById('student-subjects').textContent = student['选科'] || '未填写';
-            function populateTable(tableId, scoreKey, rank1Key, rank2Key, rank3Key, rank4Key, gradeKey = null) {
-                const tableBody = document.getElementById(tableId);
-                tableBody.innerHTML = '';
-                const row = document.createElement('tr');
-                let cellsHtml = '';
-                cellsHtml += `<td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${student[scoreKey] !== undefined ? student[scoreKey] : '-'}</td>`;
-                if (gradeKey !== null) {
-                    cellsHtml += `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student[gradeKey] !== undefined ? student[gradeKey] : '-'}</td>`;
-                }
-                cellsHtml += `
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student[rank1Key] !== undefined ? student[rank1Key] : '-'}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student[rank2Key] !== undefined ? student[rank2Key] : '-'}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student[rank3Key] !== undefined ? student[rank3Key] : '-'}</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${student[rank4Key] !== undefined ? student[rank4Key] : '-'}</td>
-                `;
-                row.innerHTML = cellsHtml;
-                tableBody.appendChild(row);
             }
-            populateTable(
-                'total-score-physics-remark',
-                '总分(物理)(赋分)_分数',
-                '总分(物理)(赋分)_方向全体名次',
-                '总分(物理)(赋分)_方向区县名次',
-                '总分(物理)(赋分)_方向校名次',
-                '总分(物理)(赋分)_方向班名次'
-            );
-            populateTable(
-                'total-score-physics',
-                '总分(物理)_分数',
-                '总分(物理)_方向全体名次',
-                '总分(物理)_方向区县名次',
-                '总分(物理)_方向校名次',
-                '总分(物理)_方向班名次'
-            );
-            populateTable(
-                'chinese-score',
-                '语文_分数',
-                '语文_方向全体名次',
-                '语文_方向区县名次',
-                '语文_方向校名次',
-                '语文_方向班名次'
-            );
-            populateTable(
-                'math-score',
-                '数学_分数',
-                '数学_方向全体名次',
-                '数学_方向区县名次',
-                '数学_方向校名次',
-                '数学_方向班名次'
-            );
-            populateTable(
-                'english-score',
-                '英语_分数',
-                '英语_方向全体名次',
-                '英语_方向区县名次',
-                '英语_方向校名次',
-                '英语_方向班名次'
-            );
-            populateTable(
-                'physics-score',
-                '物理_分数',
-                '物理_方向全体名次',
-                '物理_方向区县名次',
-                '物理_方向校名次',
-                '物理_方向班名次'
-            );
-            populateTable(
-                'chemistry-remark-score',
-                '化学(赋分)_分数',
-                '化学(赋分)_方向全体名次',
-                '化学(赋分)_方向区县名次',
-                '化学(赋分)_方向校名次',
-                '化学(赋分)_方向班名次',
-                '化学(赋分)_等级'
-            );
-            populateTable(
-                'chemistry-score',
-                '化学_分数',
-                '化学_方向全体名次',
-                '化学_方向区县名次',
-                '化学_方向校名次',
-                '化学_方向班名次'
-            );
-            populateTable(
-                'biology-remark-score',
-                '生物(赋分)_分数',
-                '生物(赋分)_方向全体名次',
-                '生物(赋分)_方向区县名次',
-                '生物(赋分)_方向校名次',
-                '生物(赋分)_方向班名次',
-                '生物(赋分)_等级'
-            );
-            populateTable(
-                'biology-score',
-                '生物_分数',
-                '生物_方向全体名次',
-                '生物_方向区县名次',
-                '生物_方向校名次',
-                '生物_方向班名次'
-            );
-            populateTable(
-                'politics-remark-score',
-                '政治(赋分)_分数',
-                '政治(赋分)_方向全体名次',
-                '政治(赋分)_方向区县名次',
-                '政治(赋分)_方向校名次',
-                '政治(赋分)_方向班名次',
-                '政治(赋分)_等级'
-            );
-            populateTable(
-                'politics-score',
-                '政治_分数',
-                '政治_方向全体名次',
-                '政治_方向区县名次',
-                '政治_方向校名次',
-                '政治_方向班名次'
-            );
-            populateTable(
-                'geography-remark-score',
-                '地理(赋分)_分数',
-                '地理(赋分)_方向全体名次',
-                '地理(赋分)_方向区县名次',
-                '地理(赋分)_方向校名次',
-                '地理(赋分)_方向班名次',
-                '地理(赋分)_等级'
-            );
-            populateTable(
-                'geography-score',
-                '地理_分数',
-                '地理_方向全体名次',
-                '地理_方向区县名次',
-                '地理_方向校名次',
-                '地理_方向班名次'
-            );
-            populateTable(
-                'minor-language-score',
-                '小语种_分数',
-                '小语种_方向全体名次',
-                '小语种_方向区县名次',
-                '小语种_方向校名次',
-                '小语种_方向班名次'
-            );
-            resultContainer.classList.remove('hidden');
-            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        function hideResult() {
-            resultContainer.classList.add('hidden');
-        }
-        function showLoading(show) {
-            if (show) {
+
+            // 显示成绩详情函数
+            function displayScoreDetails(student) {
+                multipleResults.classList.add('hidden');
+                scoreDetails.classList.remove('hidden');
+
+                // 填充基本信息
+                document.getElementById('detail-name').textContent = student['姓名'];
+                document.getElementById('detail-exam-number').textContent = student['考号'];
+                document.getElementById('detail-school').textContent = student['学校'];
+                document.getElementById('detail-class').textContent = student['班级'];
+                document.getElementById('detail-subject').textContent = student['选科'];
+
+                // 填充总分信息
+                document.getElementById('detail-total-score1').textContent = student['总分(物理)(赋分)'] || '-';
+                document.getElementById('detail-rank-all1').textContent = student['总分(物理)(赋分)_方向全体名次'] || '-';
+                document.getElementById('detail-rank-district1').textContent = student['总分(物理)(赋分)_方向区县名次'] || '-';
+                document.getElementById('detail-rank-school1').textContent = student['总分(物理)(赋分)_方向校名次'] || '-';
+                document.getElementById('detail-rank-class1').textContent = student['总分(物理)(赋分)_方向班名次'] || '-';
+
+                document.getElementById('detail-total-score2').textContent = student['总分(物理)'] || '-';
+                document.getElementById('detail-rank-all2').textContent = student['总分(物理)_方向全体名次'] || '-';
+                document.getElementById('detail-rank-district2').textContent = student['总分(物理)_方向区县名次'] || '-';
+                document.getElementById('detail-rank-school2').textContent = student['总分(物理)_方向校名次'] || '-';
+                document.getElementById('detail-rank-class2').textContent = student['总分(物理)_方向班名次'] || '-';
+
+                // 填充主科成绩
+                document.getElementById('detail-chinese').textContent = student['语文'] || '-';
+                document.getElementById('detail-chinese-rank').textContent = formatRank(student['语文_方向全体名次']);
+                
+                document.getElementById('detail-math').textContent = student['数学'] || '-';
+                document.getElementById('detail-math-rank').textContent = formatRank(student['数学_方向全体名次']);
+                
+                document.getElementById('detail-english').textContent = student['英语'] || '-';
+                document.getElementById('detail-english-rank').textContent = formatRank(student['英语_方向全体名次']);
+                
+                document.getElementById('detail-physics').textContent = student['物理'] || '-';
+                document.getElementById('detail-physics-rank').textContent = formatRank(student['物理_方向全体名次']);
+
+                // 填充选考科目成绩
+                document.getElementById('detail-chemistry-score').textContent = student['化学(赋分)'] || '-';
+                document.getElementById('detail-chemistry-rank').textContent = formatRank(student['化学(赋分)_方向全体名次']);
+                
+                document.getElementById('detail-chemistry').textContent = student['化学'] || '-';
+                document.getElementById('detail-chemistry-rank2').textContent = formatRank(student['化学_方向全体名次']);
+                
+                document.getElementById('detail-biology-score').textContent = student['生物(赋分)'] || '-';
+                document.getElementById('detail-biology-rank').textContent = formatRank(student['生物(赋分)_方向全体名次']);
+                
+                document.getElementById('detail-biology').textContent = student['生物'] || '-';
+                document.getElementById('detail-biology-rank2').textContent = formatRank(student['生物_方向全体名次']);
+                
+                document.getElementById('detail-politics-score').textContent = student['政治(赋分)'] || '-';
+                document.getElementById('detail-politics-rank').textContent = formatRank(student['政治(赋分)_方向全体名次']);
+                
+                document.getElementById('detail-politics').textContent = student['政治'] || '-';
+                document.getElementById('detail-politics-rank2').textContent = formatRank(student['政治_方向全体名次']);
+                
+                document.getElementById('detail-geography-score').textContent = student['地理(赋分)'] || '-';
+                document.getElementById('detail-geography-rank').textContent = formatRank(student['地理(赋分)_方向全体名次']);
+                
+                document.getElementById('detail-geography').textContent = student['地理'] || '-';
+                document.getElementById('detail-geography-rank2').textContent = formatRank(student['地理_方向全体名次']);
+                
+                document.getElementById('detail-language').textContent = student['小语种'] || '-';
+                document.getElementById('detail-language-rank').textContent = formatRank(student['小语种_方向全体名次']);
+            }
+
+            // 格式化排名信息
+            function formatRank(rank) {
+                return rank ? `名次: ${rank}` : '';
+            }
+
+            // 重置搜索
+            function resetSearch() {
+                resultSection.classList.add('hidden');
+                multipleResults.classList.add('hidden');
+                scoreDetails.classList.add('hidden');
+                searchForm.reset();
+            }
+
+            // 显示加载状态
+            function showLoading(text) {
+                loadingText.textContent = text;
                 loadingIndicator.classList.remove('hidden');
-                statusMessage.classList.add('hidden');
-            } else {
+            }
+
+            // 隐藏加载状态
+            function hideLoading() {
                 loadingIndicator.classList.add('hidden');
             }
-        }
-        function showStatus(message, type) {
-            statusMessage.textContent = message;
-            statusMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-yellow-100', 'text-yellow-800', 'bg-blue-100', 'text-blue-800');
-            switch (type) {
-                case 'success':
-                    statusMessage.classList.add('bg-green-100', 'text-green-800');
-                    break;
-                case 'error':
-                    statusMessage.classList.add('bg-red-100', 'text-red-800');
-                    break;
-                case 'warning':
-                    statusMessage.classList.add('bg-yellow-100', 'text-yellow-800');
-                    break;
-                case 'info':
-                default:
-                    statusMessage.classList.add('bg-blue-100', 'text-blue-800');
-                    break;
+
+            // 显示状态消息
+            function showStatus(message, type) {
+                statusText.textContent = message;
+                statusMessage.classList.remove('hidden');
+                
+                // 根据类型设置样式
+                if (type === 'success') {
+                    statusMessage.className = 'mb-6 px-4 py-3 rounded-lg flex items-center bg-green-50 text-green-800';
+                    statusIcon.className = 'fa fa-check-circle text-green-500 mr-3 text-xl';
+                } else if (type === 'error') {
+                    statusMessage.className = 'mb-6 px-4 py-3 rounded-lg flex items-center bg-red-50 text-red-800';
+                    statusIcon.className = 'fa fa-exclamation-circle text-red-500 mr-3 text-xl';
+                } else if (type === 'warning') {
+                    statusMessage.className = 'mb-6 px-4 py-3 rounded-lg flex items-center bg-yellow-50 text-yellow-800';
+                    statusIcon.className = 'fa fa-exclamation-triangle text-yellow-500 mr-3 text-xl';
+                }
+                
+                // 3秒后自动隐藏
+                setTimeout(() => {
+                    statusMessage.classList.add('hidden');
+                }, 5000);
             }
-        }
-        document.addEventListener('DOMContentLoaded', init);
+        });
     </script>
 </body>
 </html>
+    
