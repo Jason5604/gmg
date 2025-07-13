@@ -217,7 +217,7 @@
 
         async function loadXLSX() {
             try {
-                const response = await fetch('./all.xlsx');
+                const response = await fetch('./data.xlsx');
                 const arrayBuffer = await response.arrayBuffer();
                 const zip = await JSZip.loadAsync(arrayBuffer);
 
