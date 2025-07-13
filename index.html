@@ -7,8 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- Tailwind 配置 -->
     <script>
         tailwind.config = {
             theme: {
@@ -29,7 +27,6 @@
             }
         }
     </script>
-    
     <style type="text/tailwindcss">
         @layer utilities {
             .content-auto {
@@ -46,7 +43,6 @@
 </head>
 <body class="bg-gray-50 font-sans">
     <div class="min-h-screen flex flex-col">
-        <!-- 头部区域 -->
         <header class="bg-white shadow-sm py-6">
             <div class="container mx-auto px-4">
                 <h1 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-center text-gray-800">
@@ -55,13 +51,8 @@
                 <p class="text-center text-gray-500 mt-2">输入考生号或姓名查询成绩</p>
             </div>
         </header>
-        
-        <!-- 主内容区 -->
         <main class="flex-grow container mx-auto px-4 py-8">
-            <!-- 状态提示区 -->
             <div id="status-message" class="mb-6 hidden px-4 py-3 rounded-lg transition-smooth"></div>
-            
-            <!-- 查询表单 -->
             <div class="bg-white rounded-xl shadow-soft p-6 mb-8 max-w-2xl mx-auto">
                 <div class="flex flex-col md:flex-row gap-4">
                     <div class="flex-grow">
@@ -88,22 +79,15 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- 数据加载状态 -->
             <div id="loading-indicator" class="hidden text-center py-10">
                 <div class="inline-block animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
                 <p class="mt-3 text-gray-600">正在加载数据，请稍候...</p>
             </div>
-            
-            <!-- 同名选择区 -->
             <div id="duplicate-selector" class="hidden bg-white rounded-xl shadow-soft p-6 mb-8 max-w-3xl mx-auto">
                 <h2 class="text-xl font-semibold text-gray-800 mb-4">找到多个匹配结果，请选择：</h2>
                 <div id="duplicate-list" class="space-y-3"></div>
             </div>
-            
-            <!-- 结果展示区 -->
             <div id="result-container" class="hidden">
-                <!-- 学生基本信息 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6">
                     <div class="flex flex-col md:flex-row md:items-center justify-between mb-4">
                         <h2 class="text-2xl font-bold text-gray-800">
@@ -119,8 +103,6 @@
                         <p>选科：<span id="student-subjects"></span></p>
                     </div>
                 </div>
-                
-                <!-- 总分(物理)(赋分) -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">总分(物理)(赋分)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -133,13 +115,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="total-score-physics-remark" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="total-score-physics-remark" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 总分(物理) -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">总分(物理)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -152,13 +130,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="total-score-physics" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="total-score-physics" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 语文成绩 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">语文</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -171,13 +145,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="chinese-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="chinese-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 数学成绩 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">数学</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -190,13 +160,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="math-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="math-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 英语成绩 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">英语</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -209,13 +175,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="english-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="english-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 物理成绩 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">物理</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -228,13 +190,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="physics-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="physics-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 化学(赋分) -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">化学(赋分)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -248,13 +206,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="chemistry-remark-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="chemistry-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
-                <!-- 其他科目将按照类似结构展示 -->
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">化学</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -267,12 +221,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="chemistry-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="chemistry-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">生物(赋分)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -286,12 +237,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="biology-remark-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="biology-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">生物</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -304,12 +252,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="biology-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="biology-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">政治(赋分)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -323,12 +268,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="politics-remark-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="politics-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">政治</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -341,12 +283,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="politics-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="politics-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">地理(赋分)</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -360,12 +299,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="geography-remark-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="geography-remark-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">地理</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -378,12 +314,9 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="geography-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="geography-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
-                
                 <div class="bg-white rounded-xl shadow-soft p-6 mb-6 overflow-x-auto">
                     <h3 class="text-xl font-semibold text-gray-800 mb-4">小语种</h3>
                     <table class="min-w-full divide-y divide-gray-200">
@@ -396,15 +329,11 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方向班名次</th>
                             </tr>
                         </thead>
-                        <tbody id="minor-language-score" class="bg-white divide-y divide-gray-200">
-                            <!-- 数据将通过JS填充 -->
-                        </tbody>
+                        <tbody id="minor-language-score" class="bg-white divide-y divide-gray-200"></tbody>
                     </table>
                 </div>
             </div>
         </main>
-        
-        <!-- 免责声明 -->
         <div class="bg-neutral-dark text-white py-6">
             <div class="container mx-auto px-4">
                 <h3 class="text-xl font-semibold mb-4">免责声明</h3>
@@ -417,13 +346,9 @@
             </div>
         </div>
     </div>
-
     <script>
-        // 全局变量
         let studentData = [];
         let isDataLoaded = false;
-        
-        // DOM 元素
         const queryInput = document.getElementById('query-input');
         const searchBtn = document.getElementById('search-btn');
         const statusMessage = document.getElementById('status-message');
@@ -431,10 +356,7 @@
         const duplicateSelector = document.getElementById('duplicate-selector');
         const duplicateList = document.getElementById('duplicate-list');
         const resultContainer = document.getElementById('result-container');
-        
-        // 初始化函数
         async function init() {
-            // 尝试加载数据
             try {
                 showLoading(true);
                 await loadStudentData();
@@ -446,53 +368,34 @@
             } finally {
                 showLoading(false);
             }
-            
-            // 绑定事件
             searchBtn.addEventListener('click', handleSearch);
             queryInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') handleSearch();
             });
         }
-        
-        // 加载学生数据
         async function loadStudentData() {
             const response = await fetch('./data.xlsx');
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
             const arrayBuffer = await response.arrayBuffer();
             const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-            
-            // 获取所有表名
             const sheetNames = workbook.SheetNames;
-            
-            // 处理所有表格
             for (const sheetName of sheetNames) {
                 const worksheet = workbook.Sheets[sheetName];
-                
-                // 转换为JSON
                 const sheetData = XLSX.utils.sheet_to_json(worksheet);
-                
-                // 将每个表格的数据添加到学生数据中
                 studentData = [...studentData, ...sheetData];
             }
-            
             if (studentData.length === 0) {
                 throw new Error('数据库中未找到数据');
             }
         }
-        
-        // 处理搜索
         async function handleSearch() {
             const query = queryInput.value.trim();
-            
             if (!query) {
                 showStatus('请输入考生号或姓名', 'warning');
                 return;
             }
-            
-            // 如果数据未加载，尝试加载
             if (!isDataLoaded) {
                 try {
                     showLoading(true);
@@ -504,23 +407,16 @@
                     return;
                 }
             }
-            
             try {
                 showLoading(true);
-                // 隐藏之前的结果
                 hideDuplicateSelector();
                 hideResult();
-                
-                // 执行查询
                 const results = searchStudents(query);
-                
                 if (results.length === 0) {
                     showStatus('未找到匹配的学生信息', 'info');
                 } else if (results.length === 1) {
-                    // 显示单个结果
                     displayStudentResults(results[0]);
                 } else {
-                    // 显示多个结果供选择
                     showDuplicateSelector(results);
                 }
             } catch (error) {
@@ -530,21 +426,15 @@
                 showLoading(false);
             }
         }
-        
-        // 搜索学生
         function searchStudents(query) {
             return studentData.filter(student => {
-                // 假设考号字段名为"考号"，姓名字段名为"姓名"
                 const idMatch = student['考号'] && student['考号'].toString().includes(query);
                 const nameMatch = student['姓名'] && student['姓名'].toString().includes(query);
                 return idMatch || nameMatch;
             });
         }
-        
-        // 显示同名选择器
         function showDuplicateSelector(students) {
             duplicateList.innerHTML = '';
-            
             students.forEach(student => {
                 const item = document.createElement('div');
                 item.className = 'p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-smooth';
@@ -553,62 +443,42 @@
                     <div class="text-sm text-gray-600">考号: ${student['考号'] || '未知'}</div>
                     <div class="text-sm text-gray-600">学校: ${student['学校'] || '未知'}, 班级: ${student['班级'] || '未知'}</div>
                 `;
-                
                 item.addEventListener('click', () => {
                     hideDuplicateSelector();
                     displayStudentResults(student);
                 });
-                
                 duplicateList.appendChild(item);
             });
-            
             duplicateSelector.classList.remove('hidden');
         }
-        
-        // 隐藏同名选择器
         function hideDuplicateSelector() {
             duplicateSelector.classList.add('hidden');
             duplicateList.innerHTML = '';
         }
-        
-        // 显示学生成绩结果
         function displayStudentResults(student) {
-            // 填充基本信息
             document.getElementById('student-name').textContent = student['姓名'] || '未知';
             document.getElementById('student-id').textContent = `(考号: ${student['考号'] || '未知'})`;
             document.getElementById('student-school').textContent = `学校: ${student['学校'] || '未知'}`;
             document.getElementById('student-class').textContent = `班级: ${student['班级'] || '未知'}`;
             document.getElementById('student-subjects').textContent = student['选科'] || '未填写';
-            
-            // 辅助函数：填充表格数据
             function populateTable(tableId, score, rank1, rank2, rank3, rank4, grade = null) {
                 const tableBody = document.getElementById(tableId);
                 tableBody.innerHTML = '';
-                
                 const row = document.createElement('tr');
                 let cellsHtml = '';
-                
-                // 添加分数单元格
                 cellsHtml += `<td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${score !== undefined ? score : '-'}</td>`;
-                
-                // 如果有等级，添加等级单元格
                 if (grade !== null) {
                     cellsHtml += `<td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${grade || '-'}</td>`;
                 }
-                
-                // 添加名次单元格
                 cellsHtml += `
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${rank1 !== undefined ? rank1 : '-'}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${rank2 !== undefined ? rank2 : '-'}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${rank3 !== undefined ? rank3 : '-'}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">${rank4 !== undefined ? rank4 : '-'}</td>
                 `;
-                
                 row.innerHTML = cellsHtml;
                 tableBody.appendChild(row);
             }
-            
-            // 填充各科目成绩
             populateTable(
                 'total-score-physics-remark',
                 student['总分(物理)(赋分)_分数'],
@@ -617,7 +487,6 @@
                 student['总分(物理)(赋分)_方向校名次'],
                 student['总分(物理)(赋分)_方向班名次']
             );
-            
             populateTable(
                 'total-score-physics',
                 student['总分(物理)_分数'],
@@ -626,7 +495,6 @@
                 student['总分(物理)_方向校名次'],
                 student['总分(物理)_方向班名次']
             );
-            
             populateTable(
                 'chinese-score',
                 student['语文_分数'],
@@ -635,7 +503,6 @@
                 student['语文_方向校名次'],
                 student['语文_方向班名次']
             );
-            
             populateTable(
                 'math-score',
                 student['数学_分数'],
@@ -644,7 +511,6 @@
                 student['数学_方向校名次'],
                 student['数学_方向班名次']
             );
-            
             populateTable(
                 'english-score',
                 student['英语_分数'],
@@ -653,7 +519,6 @@
                 student['英语_方向校名次'],
                 student['英语_方向班名次']
             );
-            
             populateTable(
                 'physics-score',
                 student['物理_分数'],
@@ -662,7 +527,6 @@
                 student['物理_方向校名次'],
                 student['物理_方向班名次']
             );
-            
             populateTable(
                 'chemistry-remark-score',
                 student['化学(赋分)_分数'],
@@ -672,7 +536,6 @@
                 student['化学(赋分)_方向班名次'],
                 student['化学(赋分)_等级']
             );
-            
             populateTable(
                 'chemistry-score',
                 student['化学_分数'],
@@ -681,7 +544,6 @@
                 student['化学_方向校名次'],
                 student['化学_方向班名次']
             );
-            
             populateTable(
                 'biology-remark-score',
                 student['生物(赋分)_分数'],
@@ -691,7 +553,6 @@
                 student['生物(赋分)_方向班名次'],
                 student['生物(赋分)_等级']
             );
-            
             populateTable(
                 'biology-score',
                 student['生物_分数'],
@@ -700,7 +561,6 @@
                 student['生物_方向校名次'],
                 student['生物_方向班名次']
             );
-            
             populateTable(
                 'politics-remark-score',
                 student['政治(赋分)_分数'],
@@ -710,7 +570,6 @@
                 student['政治(赋分)_方向班名次'],
                 student['政治(赋分)_等级']
             );
-            
             populateTable(
                 'politics-score',
                 student['政治_分数'],
@@ -719,7 +578,6 @@
                 student['政治_方向校名次'],
                 student['政治_方向班名次']
             );
-            
             populateTable(
                 'geography-remark-score',
                 student['地理(赋分)_分数'],
@@ -729,7 +587,6 @@
                 student['地理(赋分)_方向班名次'],
                 student['地理(赋分)_等级']
             );
-            
             populateTable(
                 'geography-score',
                 student['地理_分数'],
@@ -738,7 +595,6 @@
                 student['地理_方向校名次'],
                 student['地理_方向班名次']
             );
-            
             populateTable(
                 'minor-language-score',
                 student['小语种_分数'],
@@ -747,19 +603,12 @@
                 student['小语种_方向校名次'],
                 student['小语种_方向班名次']
             );
-            
-            // 显示结果
             resultContainer.classList.remove('hidden');
-            // 滚动到结果区域
             resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        
-        // 隐藏结果
         function hideResult() {
             resultContainer.classList.add('hidden');
         }
-        
-        // 显示/隐藏加载状态
         function showLoading(show) {
             if (show) {
                 loadingIndicator.classList.remove('hidden');
@@ -768,12 +617,9 @@
                 loadingIndicator.classList.add('hidden');
             }
         }
-        
-        // 显示状态消息
         function showStatus(message, type) {
             statusMessage.textContent = message;
             statusMessage.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-yellow-100', 'text-yellow-800', 'bg-blue-100', 'text-blue-800');
-            
             switch (type) {
                 case 'success':
                     statusMessage.classList.add('bg-green-100', 'text-green-800');
@@ -790,8 +636,6 @@
                     break;
             }
         }
-        
-        // 页面加载完成后初始化
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
