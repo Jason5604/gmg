@@ -3,675 +3,199 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>学生成绩查询系统</title>
+  <title>成绩查询系统</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#3b82f6',
-            secondary: '#6366f1',
-            accent: '#10b981',
-            neutral: '#64748b',
-            light: '#f1f5f9',
-            dark: '#1e293b'
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-          },
-        },
-      }
-    }
-  </script>
-  
-  <style type="text/tailwindcss">
-    @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .watermark {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: -1;
-        opacity: 0.1;
-        pointer-events: none;
-        transform: rotate(-15deg);
-        font-size: 150px;
-        font-weight: bold;
-        color: #000;
-      }
-      .card-shadow {
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      }
-      .fade-in {
-        animation: fadeIn 0.5s ease-in-out;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .pulse {
-        animation: pulse 2s infinite;
-      }
-      @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
-      }
+  <style>
+    .watermark {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: -1;
+      opacity: 0.1;
+      pointer-events: none;
+      transform: rotate(-15deg);
+      font-size: 150px;
+      font-weight: bold;
+      color: #000;
     }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
   <div class="watermark">@叶天哲</div>
   
-  <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <header class="text-center mb-12 fade-in">
-      <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary mb-4">学生成绩查询系统</h1>
-      <p class="text-gray-600 text-lg max-w-2xl mx-auto">输入考号或姓名，查询最新考试成绩及排名信息</p>
+  <div class="container mx-auto px-4 py-8 max-w-5xl">
+    <header class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-blue-600">成绩查询系统</h1>
     </header>
     
-    <section class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8 fade-in" style="animation-delay: 0.1s">
-      <form id="searchForm" class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label for="searchValue" class="block text-gray-700 font-medium mb-2">考号或姓名 <span class="text-red-500">*</span></label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                <i class="fa fa-search"></i>
-              </span>
-              <input type="text" id="searchValue" name="searchValue" required
-                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-300"
-                placeholder="请输入考号或姓名">
-            </div>
-          </div>
-          
-          <div>
-            <label for="searchType" class="block text-gray-700 font-medium mb-2">查询方式</label>
-            <div class="relative">
-              <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                <i class="fa fa-filter"></i>
-              </span>
-              <select id="searchType" name="searchType" 
-                class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition duration-300 appearance-none bg-white">
-                <option value="both">考号或姓名</option>
-                <option value="examId">仅考号</option>
-                <option value="name">仅姓名</option>
-              </select>
-              <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
-                <i class="fa fa-chevron-down"></i>
-              </div>
-            </div>
-          </div>
+    <div class="bg-white p-6 rounded-lg shadow mb-8">
+      <form id="searchForm" class="flex flex-col md:flex-row gap-4">
+        <div class="flex-1">
+          <label class="block text-gray-700 mb-1">考号/姓名</label>
+          <input type="text" id="searchVal" required 
+            class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
         </div>
-        
-        <div class="text-center">
-          <button type="submit" id="searchBtn" 
-            class="bg-primary hover:bg-primary/90 text-white font-semibold px-8 py-3 rounded-lg transition duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary/50">
-            <i class="fa fa-search mr-2"></i>查询成绩
+        <div class="flex items-end">
+          <button type="submit" 
+            class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+            查询
           </button>
         </div>
       </form>
-      
-      <div id="status" class="mt-4 hidden"></div>
-      
-      <div id="multipleResults" class="mt-6 hidden">
-        <h3 class="text-xl font-semibold text-gray-800 mb-4">找到多个同名学生，请选择：</h3>
-        <div id="studentList" class="space-y-3"></div>
-      </div>
-    </section>
+      <div id="status" class="mt-3 p-3 rounded hidden"></div>
+    </div>
     
-    <section id="resultSection" class="hidden fade-in">
-      <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
-          <i class="fa fa-user-circle text-primary mr-2"></i>学生基本信息
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-gray-500 text-sm mb-1">学校</p>
-            <p id="school" class="font-medium text-lg"></p>
-          </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-gray-500 text-sm mb-1">班级</p>
-            <p id="class" class="font-medium text-lg"></p>
-          </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-gray-500 text-sm mb-1">考号</p>
-            <p id="studentExamId" class="font-medium text-lg"></p>
-          </div>
-          <div class="bg-gray-50 p-4 rounded-lg">
-            <p class="text-gray-500 text-sm mb-1">选科</p>
-            <p id="subject" class="font-medium text-lg"></p>
-          </div>
-        </div>
+    <div id="result" class="hidden bg-white p-6 rounded-lg shadow">
+      <h2 class="text-xl font-bold mb-4 border-b pb-2">成绩详情</h2>
+      
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div><p class="text-gray-500 text-sm">学校</p><p id="sch"></p></div>
+        <div><p class="text-gray-500 text-sm">班级</p><p id="cls"></p></div>
+        <div><p class="text-gray-500 text-sm">考号</p><p id="examId"></p></div>
+        <div><p class="text-gray-500 text-sm">选科</p><p id="subj"></p></div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
-          <i class="fa fa-line-chart text-primary mr-2"></i>总分及排名
-        </h2>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">项目</th>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">分数</th>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">全体名次</th>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">区县名次</th>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">校名次</th>
-                <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tr-lg">班名次</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr id="totalScore1">
-                <td class="px-4 py-3 text-sm font-medium text-gray-900">总分(物理)(赋分)</td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)分数"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向全体名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向区县名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向校名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向班名次"></td>
-              </tr>
-              <tr id="totalScore2">
-                <td class="px-4 py-3 text-sm font-medium text-gray-900">总分(物理)</td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)分数"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向全体名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向区县名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向校名次"></td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向班名次"></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <h3 class="font-bold mb-3">总分</h3>
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div><p>总分(物理)(赋分): <span id="total1"></span></p></div>
+        <div><p>全体名次: <span id="rank1-1"></span></p></div>
+        <div><p>区县名次: <span id="rank1-2"></span></p></div>
+        <div><p>总分(物理): <span id="total2"></span></p></div>
+        <div><p>全体名次: <span id="rank2-1"></span></p></div>
+        <div><p>区县名次: <span id="rank2-2"></span></p></div>
       </div>
       
-      <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
-          <i class="fa fa-book text-primary mr-2"></i>各科成绩及排名
-        </h2>
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">
-              <i class="fa fa-pencil-square-o text-secondary mr-2"></i>主要科目
-            </h3>
-            <div class="space-y-4">
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">语文</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="语文分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="语文方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">区县名次</p>
-                    <p data-field="语文方向区县名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="语文方向校名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">班名次</p>
-                    <p data-field="语文方向班名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">数学</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="数学分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="数学方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">区县名次</p>
-                    <p data-field="数学方向区县名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="数学方向校名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">班名次</p>
-                    <p data-field="数学方向班名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">英语</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="英语分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="英语方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">区县名次</p>
-                    <p data-field="英语方向区县名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="英语方向校名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">班名次</p>
-                    <p data-field="英语方向班名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">物理</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="物理分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="物理方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">区县名次</p>
-                    <p data-field="物理方向区县名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="物理方向校名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">班名次</p>
-                    <p data-field="物理方向班名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <h3 class="text-xl font-semibold text-gray-700 mb-4">
-              <i class="fa fa-graduation-cap text-secondary mr-2"></i>选考科目
-            </h3>
-            <div class="space-y-4">
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">化学</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="化学分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分分数</p>
-                    <p data-field="化学(赋分)分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分等级</p>
-                    <p data-field="化学(赋分)等级" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="化学(赋分)方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="化学(赋分)方向校名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">生物</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="生物分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分分数</p>
-                    <p data-field="生物(赋分)分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分等级</p>
-                    <p data-field="生物(赋分)等级" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="生物(赋分)方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="生物(赋分)方向校名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">政治</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="政治分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分分数</p>
-                    <p data-field="政治(赋分)分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分等级</p>
-                    <p data-field="政治(赋分)等级" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="政治(赋分)方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="政治(赋分)方向校名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">地理</h4>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="地理分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分分数</p>
-                    <p data-field="地理(赋分)分数" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">赋分等级</p>
-                    <p data-field="地理(赋分)等级" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">全体名次</p>
-                    <p data-field="地理(赋分)方向全体名次" class="font-medium"></p>
-                  </div>
-                  <div>
-                    <p class="text-gray-500">校名次</p>
-                    <p data-field="地理(赋分)方向校名次" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-              
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <h4 class="font-medium text-gray-800 mb-2">小语种</h4>
-                <div class="text-sm">
-                  <div>
-                    <p class="text-gray-500">分数</p>
-                    <p data-field="小语种分数" class="font-medium"></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <h3 class="font-bold mb-3">单科成绩</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <p>语文: <span id="chinese"></span> (名次: <span id="chineseRank"></span>)</p>
+          <p>数学: <span id="math"></span> (名次: <span id="mathRank"></span>)</p>
+          <p>英语: <span id="english"></span> (名次: <span id="englishRank"></span>)</p>
+          <p>物理: <span id="physics"></span> (名次: <span id="physicsRank"></span>)</p>
+        </div>
+        <div>
+          <p>化学(赋分): <span id="chemistryFen"></span> (等级: <span id="chemistryGrade"></span>)</p>
+          <p>生物(赋分): <span id="bioFen"></span> (等级: <span id="bioGrade"></span>)</p>
+          <p>政治(赋分): <span id="politicsFen"></span> (等级: <span id="politicsGrade"></span>)</p>
+          <p>地理(赋分): <span id="geoFen"></span> (等级: <span id="geoGrade"></span>)</p>
         </div>
       </div>
-      
-      <div class="text-center mb-8">
-        <button id="resetBtn" 
-          class="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-8 py-3 rounded-lg transition duration-300 transform hover:scale-105 focus:outline-none">
-          <i class="fa fa-refresh mr-2"></i>重新查询
-        </button>
-      </div>
-    </section>
-    
-    <footer class="text-center text-gray-500 text-sm py-6">
-      <p>© 2023 学生成绩查询系统 | 数据仅供参考</p>
-    </footer>
+    </div>
   </div>
-  
+
   <script>
-    let studentData = [];
-    
-    const searchForm = document.getElementById('searchForm');
-    const searchValue = document.getElementById('searchValue');
-    const searchType = document.getElementById('searchType');
-    const resultSection = document.getElementById('resultSection');
-    const statusElement = document.getElementById('status');
-    const resetBtn = document.getElementById('resetBtn');
-    const multipleResults = document.getElementById('multipleResults');
-    const studentList = document.getElementById('studentList');
-    
-    document.addEventListener('DOMContentLoaded', () => {
-      loadData();
-    });
-    
+    let dataList = []; // 存储所有数据（数组形式）
+
+    // 页面加载时加载数据
+    document.addEventListener('DOMContentLoaded', loadData);
+
     async function loadData() {
-      showStatus('正在加载数据库，请稍候...', 'info');
-      
+      showStatus('加载数据中...', 'info');
       try {
-        const response = await fetch('./data.xlsx');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const res = await fetch('./data.xlsx');
+        if (!res.ok) throw new Error('文件加载失败');
         
-        const arrayBuffer = await response.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetNames = workbook.SheetNames;
+        const ab = await res.arrayBuffer();
+        const wb = XLSX.read(ab, { type: 'array' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
         
-        for (const sheetName of sheetNames) {
-          const worksheet = workbook.Sheets[sheetName];
-          const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          if (sheetData.length <= 1) continue;
-          
-          const headers = processHeaders(sheetData);
-          
-          for (let i = 1; i < sheetData.length; i++) {
-            const row = sheetData[i];
-            const student = {};
-            
-            headers.forEach((header, index) => {
-              if (header && row[index] !== undefined) {
-                student[header] = row[index];
-              }
-            });
-            
-            if (student['考号'] && student['姓名']) {
-              studentData.push(student);
-            }
-          }
-        }
+        // 转换为二维数组（[行][列]），跳过表头行（前2行是表头）
+        const jsonData = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        dataList = jsonData.slice(2); // 从第3行开始是数据行
         
-        if (studentData.length === 0) {
-          throw new Error('数据库中未找到数据');
-        }
-        
-        showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
-      } catch (error) {
-        showStatus(`加载数据库失败: ${error.message}`, 'error');
-        console.error('Error loading data:', error);
+        if (dataList.length === 0) throw new Error('无数据');
+        showStatus(`加载成功（${dataList.length}条）`, 'success');
+      } catch (err) {
+        showStatus('加载失败: ' + err.message, 'error');
       }
     }
-    
-    function processHeaders(sheetData) {
-      if (sheetData.length < 2) return [];
-      
-      const row1 = sheetData[0];
-      const row2 = sheetData[1];
-      const headers = [];
-      
-      for (let i = 0; i < row2.length; i++) {
-        let header = '';
-        
-        if (row1[i] && row1[i].trim()) {
-          header += row1[i].trim();
-          
-          if (row2[i] && row2[i].trim() && row2[i] !== '分数' && row2[i] !== '等级') {
-            header += ' ' + row2[i].trim();
-          }
-        } else if (row2[i] && row2[i].trim()) {
-          header = row2[i].trim();
-        }
-        
-        header = header
-          .replace(/\s+/g, ' ')
-          .replace(/\(|\)/g, '')
-          .trim();
-        
-        if (header) {
-          if (header === '总分 物理 赋分') header = '总分(物理)(赋分)分数';
-          else if (header === '总分 物理') header = '总分(物理)分数';
-          else if (header === '小语种') header = '小语种分数';
-          else if (header.includes('方向全体名次')) header = header.replace('方向全体名次', '') + '方向全体名次';
-          else if (header.includes('方向区县名次')) header = header.replace('方向区县名次', '') + '方向区县名次';
-          else if (header.includes('方向校名次')) header = header.replace('方向校名次', '') + '方向校名次';
-          else if (header.includes('方向班名次')) header = header.replace('方向班名次', '') + '方向班名次';
-          else if (!header.endsWith('分数') && !header.endsWith('等级')) header += '分数';
-        }
-        
-        headers.push(header);
-      }
-      
-      return headers;
-    }
-    
-    function showStatus(message, type) {
-      statusElement.textContent = message;
-      statusElement.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800', 'p-3', 'rounded-lg');
-      
-      switch (type) {
-        case 'success':
-          statusElement.classList.add('bg-green-100', 'text-green-800', 'p-3', 'rounded-lg');
-          break;
-        case 'error':
-          statusElement.classList.add('bg-red-100', 'text-red-800', 'p-3', 'rounded-lg');
-          break;
-        case 'info':
-        default:
-          statusElement.classList.add('bg-blue-100', 'text-blue-800', 'p-3', 'rounded-lg');
-          break;
-      }
-    }
-    
-    searchForm.addEventListener('submit', (e) => {
+
+    // 搜索功能
+    document.getElementById('searchForm').addEventListener('submit', (e) => {
       e.preventDefault();
+      const val = document.getElementById('searchVal').value.trim();
+      if (!val) return;
       
-      const value = searchValue.value.trim();
-      const type = searchType.value;
+      // 查找匹配项（考号是第2列，姓名是第3列）
+      const found = dataList.filter(row => 
+        row[2]?.toString() === val || row[3]?.toString() === val
+      );
       
-      if (!value) {
-        showStatus('请输入考号或姓名', 'error');
-        return;
-      }
-      
-      let results = [];
-      
-      switch (type) {
-        case 'examId':
-          results = studentData.filter(s => s['考号']?.toString() === value);
-          break;
-        case 'name':
-          results = studentData.filter(s => s['姓名']?.toString() === value);
-          break;
-        case 'both':
-        default:
-          results = studentData.filter(s => s['考号']?.toString() === value);
-          
-          if (results.length === 0) {
-            results = studentData.filter(s => s['姓名']?.toString() === value);
-          }
-          break;
-      }
-      
-      if (results.length === 0) {
-        showStatus('未找到匹配的学生信息，请检查输入是否正确', 'error');
-        resultSection.classList.add('hidden');
-        multipleResults.classList.add('hidden');
-      } else if (results.length === 1) {
-        showStatus('', '');
-        multipleResults.classList.add('hidden');
-        displayResult(results[0]);
-        resultSection.classList.remove('hidden');
-        resultSection.scrollIntoView({ behavior: 'smooth' });
+      if (found.length === 0) {
+        showStatus('未找到匹配数据', 'error');
+        document.getElementById('result').classList.add('hidden');
+      } else if (found.length === 1) {
+        showResult(found[0]);
       } else {
-        showStatus('', '');
-        resultSection.classList.add('hidden');
-        showStudentList(results);
-        multipleResults.classList.remove('hidden');
-        multipleResults.scrollIntoView({ behavior: 'smooth' });
+        // 重名时显示考号供选择
+        let html = '找到多个结果，请选择考号: ';
+        found.forEach(row => {
+          html += `<button class="ml-2 px-3 py-1 border rounded" onclick="showResult(${JSON.stringify(row)})">${row[2]}</button>`;
+        });
+        showStatus(html, 'info');
       }
     });
-    
-    function showStudentList(students) {
-      studentList.innerHTML = '';
+
+    // 显示成绩（row是当前学生的数据数组）
+    function showResult(row) {
+      // 解析row数组（按你的Excel列顺序，索引对应关系）
+      // 基础信息：0-学校，1-班级，2-考号，3-姓名，4-选科
+      document.getElementById('sch').textContent = row[0] || '-';
+      document.getElementById('cls').textContent = row[1] || '-';
+      document.getElementById('examId').textContent = row[2] || '-';
+      document.getElementById('subj').textContent = row[4] || '-';
       
-      students.forEach(student => {
-        const card = document.createElement('div');
-        card.className = 'bg-white border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition duration-200 cursor-pointer';
-        card.innerHTML = `
-          <div class="flex items-center">
-            <div class="mr-4 bg-primary text-white p-2 rounded-full">
-              <i class="fa fa-user"></i>
-            </div>
-            <div>
-              <p class="font-medium text-gray-900">${student['姓名']}</p>
-              <p class="text-sm text-gray-600">考号: ${student['考号']}</p>
-              <p class="text-sm text-gray-600">学校: ${student['学校'] || '-'}, 班级: ${student['班级'] || '-'}</p>
-            </div>
-          </div>
-        `;
-        
-        card.addEventListener('click', () => {
-          displayResult(student);
-          resultSection.classList.remove('hidden');
-          multipleResults.classList.add('hidden');
-          resultSection.scrollIntoView({ behavior: 'smooth' });
-        });
-        
-        studentList.appendChild(card);
-      });
-    }
-    
-    function displayResult(student) {
-      document.getElementById('school').textContent = getValue(student, '学校');
-      document.getElementById('class').textContent = getValue(student, '班级');
-      document.getElementById('studentExamId').textContent = getValue(student, '考号');
-      document.getElementById('name').textContent = getValue(student, '姓名');
-      document.getElementById('subject').textContent = getValue(student, '选科');
+      // 总分相关（索引5开始）
+      document.getElementById('total1').textContent = row[5] || '-'; // 总分(物理)(赋分)分数
+      document.getElementById('rank1-1').textContent = row[6] || '-'; // 全体名次
+      document.getElementById('rank1-2').textContent = row[7] || '-'; // 区县名次
+      document.getElementById('total2').textContent = row[10] || '-'; // 总分(物理)分数
+      document.getElementById('rank2-1').textContent = row[11] || '-'; // 全体名次
+      document.getElementById('rank2-2').textContent = row[12] || '-'; // 区县名次
       
-      document.querySelectorAll('[data-field]').forEach(element => {
-        const field = element.getAttribute('data-field');
-        element.textContent = getValue(student, field);
-      });
-    }
-    
-    function getValue(obj, key) {
-      return obj[key] !== undefined ? obj[key] : '-';
-    }
-    
-    resetBtn.addEventListener('click', () => {
-      searchForm.reset();
-      resultSection.classList.add('hidden');
-      multipleResults.classList.add('hidden');
+      // 单科成绩
+      document.getElementById('chinese').textContent = row[15] || '-'; // 语文分数
+      document.getElementById('chineseRank').textContent = row[16] || '-'; // 语文名次
+      document.getElementById('math').textContent = row[20] || '-'; // 数学分数
+      document.getElementById('mathRank').textContent = row[21] || '-'; // 数学名次
+      document.getElementById('english').textContent = row[25] || '-'; // 英语分数
+      document.getElementById('englishRank').textContent = row[26] || '-'; // 英语名次
+      document.getElementById('physics').textContent = row[30] || '-'; // 物理分数
+      document.getElementById('physicsRank').textContent = row[31] || '-'; // 物理名次
+      
+      // 赋分科目
+      document.getElementById('chemistryFen').textContent = row[36] || '-'; // 化学赋分
+      document.getElementById('chemistryGrade').textContent = row[37] || '-'; // 化学等级
+      document.getElementById('bioFen').textContent = row[43] || '-'; // 生物赋分
+      document.getElementById('bioGrade').textContent = row[44] || '-'; // 生物等级
+      document.getElementById('politicsFen').textContent = row[50] || '-'; // 政治赋分
+      document.getElementById('politicsGrade').textContent = row[51] || '-'; // 政治等级
+      document.getElementById('geoFen').textContent = row[57] || '-'; // 地理赋分
+      document.getElementById('geoGrade').textContent = row[58] || '-'; // 地理等级
+      
+      document.getElementById('result').classList.remove('hidden');
       showStatus('', '');
-      searchValue.focus();
-    });
+    }
+
+    // 显示状态信息
+    function showStatus(txt, type) {
+      const el = document.getElementById('status');
+      el.innerHTML = txt;
+      el.classList.remove('hidden', 'bg-green-100', 'bg-red-100', 'bg-blue-100');
+      if (type === 'success') el.classList.add('bg-green-100');
+      else if (type === 'error') el.classList.add('bg-red-100');
+      else if (type === 'info') el.classList.add('bg-blue-100');
+      else el.classList.add('hidden');
+    }
   </script>
 </body>
 </html>
