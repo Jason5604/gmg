@@ -145,18 +145,67 @@
 <body>
     <div class="container">
         <h1>梅州兴宁期末联考高一查分系统 by@YuanUniverSe</h1>
-        <p class="hint">仅输入学生姓名或考生号即可进行查询，输入考生号可避免重名</p>
+        <p class="hint">仅输入学生姓名或考生号即可进行查询，输入考生号仅为了防止重名</p>
         <div class="search-box">
             <input type="text" id="queryInput" placeholder="输入学生姓名或考生号">
             <button id="searchButton">查询</button>
         </div>
         <div class="table-container">
             <table id="resultTable" style="display: none;">
-                <thead id="tableHeader">
-                    <!-- 表头将动态生成 -->
+                <thead>
+                    <tr>
+                        <th>学校</th>
+                        <th>班级</th>
+                        <th>考号</th>
+                        <th>姓名</th>
+                        <th>选科</th>
+                        <th>总分</th>
+                        <th>市排名</th>
+                        <th>级排名</th>
+                        <th>班排名</th>
+                        <th>语文总分</th>
+                        <th>语文市排名</th>
+                        <th>语文级排名</th>
+                        <th>语文班排名</th>
+                        <th>数学总分</th>
+                        <th>数学市排名</th>
+                        <th>数学级排名</th>
+                        <th>数学班排名</th>
+                        <th>英语总分</th>
+                        <th>英语市排名</th>
+                        <th>英语级排名</th>
+                        <th>英语班排名</th>
+                        <th>物理总分</th>
+                        <th>物理市排名</th>
+                        <th>物理级排名</th>
+                        <th>物理班排名</th>
+                        <th>化学总分</th>
+                        <th>化学市排名</th>
+                        <th>化学级排名</th>
+                        <th>化学班排名</th>
+                        <th>生物总分</th>
+                        <th>生物市排名</th>
+                        <th>生物级排名</th>
+                        <th>生物班排名</th>
+                        <th>政治总分</th>
+                        <th>政治市排名</th>
+                        <th>政治级排名</th>
+                        <th>政治班排名</th>
+                        <th>历史总分</th>
+                        <th>历史市排名</th>
+                        <th>历史级排名</th>
+                        <th>历史班排名</th>
+                        <th>地理总分</th>
+                        <th>地理市排名</th>
+                        <th>地理级排名</th>
+                        <th>地理班排名</th>
+                        <th>小语种总分</th>
+                        <th>小语种市排名</th>
+                        <th>小语种级排名</th>
+                        <th>小语种班排名</th>
+                    </tr>
                 </thead>
                 <tbody id="tableBody">
-                    <!-- 数据将动态生成 -->
                 </tbody>
             </table>
         </div>
@@ -198,122 +247,6 @@
             }
         }
 
-        function parseSharedStrings(xml) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(xml, "application/xml");
-            const strings = doc.getElementsByTagName("t");
-            return Array.from(strings).map(node => node.textContent);
-        }
-
-        function parseSheet(sheetXML, sharedStrings) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(sheetXML, "application/xml");
-            const rows = doc.getElementsByTagName("row");
-            const data = [];
-            for (const row of rows) {
-                const cells = Array.from(row.getElementsByTagName("c"));
-                const rowData = cells.map(cell => {
-                    const type = cell.getAttribute("t");
-                    const value = cell.getElementsByTagName("v")[0]?.textContent;
-                    if (type === "s" && value !== undefined) {
-                        return sharedStrings[parseInt(value, 10)] || "";
-                    }
-                    return value || "";
-                });
-                data.push(rowData);
-            }
-            return data;
-        }
-
-        function getSheetNames(workbookXML) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(workbookXML, "application/xml");
-            const sheets = doc.getElementsByTagName("sheet");
-            return Array.from(sheets).map(sheet => ({
-                name: sheet.getAttribute("name"),
-                file: `sheet${sheet.getAttribute("sheetId")}.xml`
-            }));
-        }
-
-        function getHeaders(direction) {
-            const baseHeaders = [
-                "学校", "班级", "考号", "姓名", "选科",
-                "总分(赋分)分数", "总分(赋分)全体名次", "总分(赋分)区县名次", "总分(赋分)校名次", "总分(赋分)班名次",
-                "总分分数", "总分全体名次", "总分区县名次", "总分校名次", "总分班名次",
-                "语文分数", "语文全体名次", "语文区县名次", "语文校名次", "语文班名次",
-                "数学分数", "数学全体名次", "数学区县名次", "数学校名次", "数学班名次",
-                "英语分数", "英语全体名次", "英语区县名次", "英语校名次", "英语班名次"
-            ];
-
-            const physicsHeaders = [
-                "物理分数", "物理全体名次", "物理区县名次", "物理校名次", "物理班名次",
-                "化学(赋分)分数", "化学(赋分)等级", "化学(赋分)全体名次", "化学(赋分)区县名次", "化学(赋分)校名次", "化学(赋分)班名次",
-                "化学分数", "化学全体名次", "化学区县名次", "化学校名次", "化学班名次",
-                "生物(赋分)分数", "生物(赋分)等级", "生物(赋分)全体名次", "生物(赋分)区县名次", "生物(赋分)校名次", "生物(赋分)班名次",
-                "生物分数", "生物全体名次", "生物区县名次", "生物校名次", "生物班名次",
-                "政治(赋分)分数", "政治(赋分)等级", "政治(赋分)全体名次", "政治(赋分)区县名次", "政治(赋分)校名次", "政治(赋分)班名次",
-                "政治分数", "政治全体名次", "政治区县名次", "政治校名次", "政治班名次",
-                "地理(赋分)分数", "地理(赋分)等级", "地理(赋分)全体名次", "地理(赋分)区县名次", "地理(赋分)校名次", "地理(赋分)班名次",
-                "地理分数", "地理全体名次", "地理区县名次", "地理校名次", "地理班名次",
-                "小语种分数", "小语种全体名次", "小语种区县名次", "小语种校名次", "小语种班名次"
-            ];
-
-            const historyHeaders = [
-                "化学(赋分)分数", "化学(赋分)等级", "化学(赋分)全体名次", "化学(赋分)区县名次", "化学(赋分)校名次", "化学(赋分)班名次",
-                "化学分数", "化学全体名次", "化学区县名次", "化学校名次", "化学班名次",
-                "生物(赋分)分数", "生物(赋分)等级", "生物(赋分)全体名次", "生物(赋分)区县名次", "生物(赋分)校名次", "生物(赋分)班名次",
-                "生物分数", "生物全体名次", "生物区县名次", "生物校名次", "生物班名次",
-                "政治(赋分)分数", "政治(赋分)等级", "政治(赋分)全体名次", "政治(赋分)区县名次", "政治(赋分)校名次", "政治(赋分)班名次",
-                "政治分数", "政治全体名次", "政治区县名次", "政治校名次", "政治班名次",
-                "历史分数", "历史全体名次", "历史区县名次", "历史校名次", "历史班名次",
-                "地理(赋分)分数", "地理(赋分)等级", "地理(赋分)全体名次", "地理(赋分)区县名次", "地理(赋分)校名次", "地理(赋分)班名次",
-                "地理分数", "地理全体名次", "地理区县名次", "地理校名次", "地理班名次",
-                "小语种分数", "小语种全体名次", "小语种区县名次", "小语种校名次", "小语种班名次"
-            ];
-
-            return direction === '物理' ? [...baseHeaders, ...physicsHeaders] : [...baseHeaders, ...historyHeaders];
-        }
-
-        function getRowData(row, direction) {
-            const baseData = [
-                row[0] || "", row[1] || "", row[2] || "", row[3] || "", row[4] || "",
-                row[5] || "", row[6] || "", row[7] || "", row[8] || "", row[9] || "",
-                row[10] || "", row[11] || "", row[12] || "", row[13] || "", row[14] || "",
-                row[15] || "", row[16] || "", row[17] || "", row[18] || "", row[19] || "",
-                row[20] || "", row[21] || "", row[22] || "", row[23] || "", row[24] || ""
-            ];
-
-            if (direction === '物理') {
-                return [
-                    ...baseData,
-                    row[30] || "", row[31] || "", row[32] || "", row[33] || "", row[34] || "",
-                    row[35] || "", row[36] || "", row[37] || "", row[38] || "", row[39] || "", row[40] || "",
-                    row[41] || "", row[42] || "", row[43] || "", row[44] || "", row[45] || "",
-                    row[46] || "", row[47] || "", row[48] || "", row[49] || "", row[50] || "", row[51] || "",
-                    row[52] || "", row[53] || "", row[54] || "", row[55] || "", row[56] || "",
-                    row[57] || "", row[58] || "", row[59] || "", row[60] || "", row[61] || "", row[62] || "",
-                    row[63] || "", row[64] || "", row[65] || "", row[66] || "", row[67] || "",
-                    row[68] || "", row[69] || "", row[70] || "", row[71] || "", row[72] || "", row[73] || "",
-                    row[74] || "", row[75] || "", row[76] || "", row[77] || "", row[78] || "",
-                    row[79] || "", row[80] || "", row[81] || "", row[82] || "", row[83] || ""
-                ];
-            } else {
-                return [
-                    ...baseData,
-                    row[25] || "", row[26] || "", row[27] || "", row[28] || "", row[29] || "", row[30] || "",
-                    row[31] || "", row[32] || "", row[33] || "", row[34] || "", row[35] || "",
-                    row[36] || "", row[37] || "", row[38] || "", row[39] || "", row[40] || "", row[41] || "",
-                    row[42] || "", row[43] || "", row[44] || "", row[45] || "", row[46] || "",
-                    row[47] || "", row[48] || "", row[49] || "", row[50] || "", row[51] || "", row[52] || "",
-                    row[53] || "", row[54] || "", row[55] || "", row[56] || "", row[57] || "",
-                    row[58] || "", row[59] || "", row[60] || "", row[61] || "", row[62] || "",
-                    row[63] || "", row[64] || "", row[65] || "", row[66] || "", row[67] || "", row[68] || "",
-                    row[69] || "", row[70] || "", row[71] || "", row[72] || "", row[73] || "",
-                    row[74] || "", row[75] || "", row[76] || "", row[77] || "", row[78] || ""
-                ];
-            }
-        }
-
         document.getElementById('searchButton').addEventListener('click', () => {
             const query = document.getElementById('queryInput').value.trim();
             if (!query) {
@@ -323,42 +256,63 @@
 
             const results = combinedData.filter(row => row[3] === query || row[2] === query);
             const tableBody = document.getElementById('tableBody');
-            const tableHeader = document.getElementById('tableHeader');
             tableBody.innerHTML = "";
-            tableHeader.innerHTML = "";
 
             if (results.length > 0) {
-                const firstRow = results[0];
-                const direction = firstRow[4]?.startsWith('物') ? '物理' : '历史';
-                const headers = getHeaders(direction);
-                
-                const headerRow = document.createElement('tr');
-                headers.forEach(header => {
-                    const th = document.createElement('th');
-                    th.textContent = header;
-                    headerRow.appendChild(th);
-                });
-                tableHeader.appendChild(headerRow);
-
                 results.forEach(row => {
-                    const direction = row[4]?.startsWith('物') ? '物理' : '历史';
-                    const rowData = getRowData(row, direction);
                     const tr = document.createElement('tr');
-                    rowData.forEach((cell, index) => {
-                        if (cell || headers[index].includes('学校') || headers[index].includes('班级') || headers[index].includes('考号') || headers[index].includes('姓名') || headers[index].includes('选科')) {
-                            const td = document.createElement('td');
-                            td.textContent = cell || '';
-                            tr.appendChild(td);
-                        }
+                    row.forEach(cell => {
+                        const td = document.createElement('td');
+                        td.textContent = cell;
+                        tr.appendChild(td);
                     });
                     tableBody.appendChild(tr);
                 });
-
                 document.getElementById('resultTable').style.display = "table";
             } else {
                 alert("未找到匹配对象");
             }
         });
+
+        function parseSharedStrings(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const strings = doc.getElementsByTagName("t");
+            return Array.from(strings).map(node => node.textContent);
+        }
+
+        function parseSheet(xml, sharedStrings) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const rows = doc.getElementsByTagName("row");
+
+            const data = [];
+            for (const row of rows) {
+                const cells = Array.from(row.getElementsByTagName("c"));
+                const rowData = cells.map(cell => {
+                    const type = cell.getAttribute("t");
+                    const value = cell.getElementsByTagName("v")[0]?.textContent;
+
+                    if (type === "s") {
+                        return sharedStrings[parseInt(value, 10)];
+                    }
+                    return value || "";
+                });
+                data.push(rowData);
+            }
+            return data;
+        }
+
+        function getSheetNames(xml) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xml, "application/xml");
+            const sheets = doc.getElementsByTagName("sheet");
+
+            return Array.from(sheets).map(sheet => ({
+                name: sheet.getAttribute("name"),
+                file: `sheet${sheet.getAttribute("sheetId")}.xml`
+            }));
+        }
 
         alert("免责声明\n1.本站用途仅供学生查询联考成绩，无任何盈利收费行为。\n2.本站保证不含任何病毒，木马，等破坏用户数据的恶意代码。\n3.本站所用数据库均是公开数据并且通过合法途径取得。\n4.如果用户继续使用本站即代表信任网站作者，自愿使用本站的功能，并接受本协议所有条款。 如果用户不接受本协议请立即退出本站。");
         loadXLSX();
