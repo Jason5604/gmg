@@ -174,7 +174,7 @@
             <tbody class="bg-white divide-y divide-gray-200">
               <tr id="totalScore1">
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">总分(物理)(赋分)</td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)总分"></td>
+                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)分数"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向全体名次"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向区县名次"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)(赋分)方向校名次"></td>
@@ -182,7 +182,7 @@
               </tr>
               <tr id="totalScore2">
                 <td class="px-4 py-3 text-sm font-medium text-gray-900">总分(物理)</td>
-                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)总分"></td>
+                <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)分数"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向全体名次"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向区县名次"></td>
                 <td class="px-4 py-3 text-sm text-gray-500" data-field="总分(物理)方向校名次"></td>
@@ -339,11 +339,11 @@
                   </div>
                   <div>
                     <p class="text-gray-500">全体名次</p>
-                    <p data-field="化学方向全体名次" class="font-medium"></p>
+                    <p data-field="化学(赋分)方向全体名次" class="font-medium"></p>
                   </div>
                   <div>
                     <p class="text-gray-500">校名次</p>
-                    <p data-field="化学方向校名次" class="font-medium"></p>
+                    <p data-field="化学(赋分)方向校名次" class="font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -366,11 +366,11 @@
                   </div>
                   <div>
                     <p class="text-gray-500">全体名次</p>
-                    <p data-field="生物方向全体名次" class="font-medium"></p>
+                    <p data-field="生物(赋分)方向全体名次" class="font-medium"></p>
                   </div>
                   <div>
                     <p class="text-gray-500">校名次</p>
-                    <p data-field="生物方向校名次" class="font-medium"></p>
+                    <p data-field="生物(赋分)方向校名次" class="font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -393,11 +393,11 @@
                   </div>
                   <div>
                     <p class="text-gray-500">全体名次</p>
-                    <p data-field="政治方向全体名次" class="font-medium"></p>
+                    <p data-field="政治(赋分)方向全体名次" class="font-medium"></p>
                   </div>
                   <div>
                     <p class="text-gray-500">校名次</p>
-                    <p data-field="政治方向校名次" class="font-medium"></p>
+                    <p data-field="政治(赋分)方向校名次" class="font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -420,11 +420,11 @@
                   </div>
                   <div>
                     <p class="text-gray-500">全体名次</p>
-                    <p data-field="地理方向全体名次" class="font-medium"></p>
+                    <p data-field="地理(赋分)方向全体名次" class="font-medium"></p>
                   </div>
                   <div>
                     <p class="text-gray-500">校名次</p>
-                    <p data-field="地理方向校名次" class="font-medium"></p>
+                    <p data-field="地理(赋分)方向校名次" class="font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -435,7 +435,7 @@
                 <div class="text-sm">
                   <div>
                     <p class="text-gray-500">分数</p>
-                    <p data-field="小语种" class="font-medium"></p>
+                    <p data-field="小语种分数" class="font-medium"></p>
                   </div>
                 </div>
               </div>
@@ -498,10 +498,29 @@
           const worksheet = workbook.Sheets[sheetName];
           
           // 转换为JSON
-          const sheetData = XLSX.utils.sheet_to_json(worksheet);
+          const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
-          // 将每个表格的数据添加到学生数据中
-          studentData = [...studentData, ...sheetData];
+          if (sheetData.length <= 1) continue; // 至少需要标题行和数据行
+          
+          // 处理合并单元格的表头
+          const headers = processHeaders(sheetData);
+          
+          // 从第二行(index=1)开始加载数据
+          for (let i = 1; i < sheetData.length; i++) {
+            const row = sheetData[i];
+            const student = {};
+            
+            headers.forEach((header, index) => {
+              if (header && row[index] !== undefined) {
+                student[header] = row[index];
+              }
+            });
+            
+            // 只添加有考号和姓名的数据
+            if (student['考号'] && student['姓名']) {
+              studentData.push(student);
+            }
+          }
         }
         
         if (studentData.length === 0) {
@@ -513,6 +532,54 @@
         showStatus(`加载数据失败: ${error.message}`, 'error');
         console.error('Error loading data:', error);
       }
+    }
+    
+    // 处理合并单元格的表头
+    function processHeaders(sheetData) {
+      // 假设前两行是合并的表头
+      if (sheetData.length < 2) return [];
+      
+      const row1 = sheetData[0];
+      const row2 = sheetData[1];
+      const headers = [];
+      
+      for (let i = 0; i < row2.length; i++) {
+        // 合并两个表头行
+        let header = '';
+        
+        if (row1[i] && row1[i].trim()) {
+          header += row1[i].trim();
+          
+          if (row2[i] && row2[i].trim() && row2[i] !== '分数' && row2[i] !== '等级') {
+            header += ' ' + row2[i].trim();
+          }
+        } else if (row2[i] && row2[i].trim()) {
+          header = row2[i].trim();
+        }
+        
+        // 清理表头
+        header = header
+          .replace(/\s+/g, ' ')
+          .replace(/\(|\)/g, '')
+          .trim();
+        
+        // 为表头添加唯一标识
+        if (header) {
+          // 处理特殊情况
+          if (header === '总分 物理 赋分') header = '总分(物理)(赋分)分数';
+          else if (header === '总分 物理') header = '总分(物理)分数';
+          else if (header === '小语种') header = '小语种分数';
+          else if (header.includes('方向全体名次')) header = header.replace('方向全体名次', '') + '方向全体名次';
+          else if (header.includes('方向区县名次')) header = header.replace('方向区县名次', '') + '方向区县名次';
+          else if (header.includes('方向校名次')) header = header.replace('方向校名次', '') + '方向校名次';
+          else if (header.includes('方向班名次')) header = header.replace('方向班名次', '') + '方向班名次';
+          else if (!header.endsWith('分数') && !header.endsWith('等级')) header += '分数';
+        }
+        
+        headers.push(header);
+      }
+      
+      return headers;
     }
     
     // 显示状态信息
@@ -571,10 +638,6 @@
     
     // 显示查询结果
     function displayResult(student) {
-      // 解析数据为数组形式
-      const dataArray = Object.values(student);
-      const dataKeys = Object.keys(student);
-      
       // 显示基本信息
       document.getElementById('school').textContent = getValue(student, '学校');
       document.getElementById('class').textContent = getValue(student, '班级');
@@ -585,14 +648,7 @@
       // 填充所有数据字段
       document.querySelectorAll('[data-field]').forEach(element => {
         const field = element.getAttribute('data-field');
-        const index = dataKeys.indexOf(field);
-        
-        if (index !== -1) {
-          // 使用索引方式获取值 [0][1][2]
-          element.textContent = dataArray[index] !== undefined ? dataArray[index] : '-';
-        } else {
-          element.textContent = '-';
-        }
+        element.textContent = getValue(student, field);
       });
     }
     
