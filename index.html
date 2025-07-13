@@ -4,14 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>学生成绩查询系统</title>
-  <!-- 引入Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入Font Awesome -->
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
-  <!-- 引入SheetJS用于处理Excel文件 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
-  <!-- 配置Tailwind自定义颜色和字体 -->
   <script>
     tailwind.config = {
       theme: {
@@ -76,17 +72,14 @@
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-  <!-- 水印 -->
   <div class="watermark">@叶天哲</div>
   
   <div class="container mx-auto px-4 py-8 max-w-6xl">
-    <!-- 头部 -->
     <header class="text-center mb-12 fade-in">
       <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary mb-4">学生成绩查询系统</h1>
       <p class="text-gray-600 text-lg max-w-2xl mx-auto">输入考号或姓名，查询最新考试成绩及排名信息</p>
     </header>
     
-    <!-- 查询区域 -->
     <section class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8 fade-in" style="animation-delay: 0.1s">
       <form id="searchForm" class="space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -129,19 +122,15 @@
         </div>
       </form>
       
-      <!-- 状态提示 -->
       <div id="status" class="mt-4 hidden"></div>
       
-      <!-- 重名选择区域 -->
       <div id="multipleResults" class="mt-6 hidden">
         <h3 class="text-xl font-semibold text-gray-800 mb-4">找到多个同名学生，请选择：</h3>
         <div id="studentList" class="space-y-3"></div>
       </div>
     </section>
     
-    <!-- 结果展示区域 -->
     <section id="resultSection" class="hidden fade-in">
-      <!-- 学生基本信息 -->
       <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
           <i class="fa fa-user-circle text-primary mr-2"></i>学生基本信息
@@ -166,7 +155,6 @@
         </div>
       </div>
       
-      <!-- 总分信息 -->
       <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
           <i class="fa fa-line-chart text-primary mr-2"></i>总分及排名
@@ -205,19 +193,16 @@
         </div>
       </div>
       
-      <!-- 各科成绩 -->
       <div class="bg-white rounded-xl p-6 md:p-8 card-shadow mb-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
           <i class="fa fa-book text-primary mr-2"></i>各科成绩及排名
         </h2>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- 文科 -->
           <div>
             <h3 class="text-xl font-semibold text-gray-700 mb-4">
               <i class="fa fa-pencil-square-o text-secondary mr-2"></i>主要科目
             </h3>
             <div class="space-y-4">
-              <!-- 语文 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">语文</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -244,7 +229,6 @@
                 </div>
               </div>
               
-              <!-- 数学 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">数学</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -271,7 +255,6 @@
                 </div>
               </div>
               
-              <!-- 英语 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">英语</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -298,7 +281,6 @@
                 </div>
               </div>
               
-              <!-- 物理 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">物理</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -327,13 +309,11 @@
             </div>
           </div>
           
-          <!-- 选考科目 -->
           <div>
             <h3 class="text-xl font-semibold text-gray-700 mb-4">
               <i class="fa fa-graduation-cap text-secondary mr-2"></i>选考科目
             </h3>
             <div class="space-y-4">
-              <!-- 化学 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">化学</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -360,7 +340,6 @@
                 </div>
               </div>
               
-              <!-- 生物 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">生物</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -387,7 +366,6 @@
                 </div>
               </div>
               
-              <!-- 政治 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">政治</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -414,7 +392,6 @@
                 </div>
               </div>
               
-              <!-- 地理 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">地理</h4>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
@@ -441,7 +418,6 @@
                 </div>
               </div>
               
-              <!-- 小语种 -->
               <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="font-medium text-gray-800 mb-2">小语种</h4>
                 <div class="text-sm">
@@ -456,7 +432,6 @@
         </div>
       </div>
       
-      <!-- 重新查询按钮 -->
       <div class="text-center mb-8">
         <button id="resetBtn" 
           class="bg-gray-600 hover:bg-gray-700 text-white font-semibold px-8 py-3 rounded-lg transition duration-300 transform hover:scale-105 focus:outline-none">
@@ -465,18 +440,14 @@
       </div>
     </section>
     
-    <!-- 页脚 -->
     <footer class="text-center text-gray-500 text-sm py-6">
       <p>© 2023 学生成绩查询系统 | 数据仅供参考</p>
     </footer>
   </div>
   
-  <!-- JavaScript -->
   <script>
-    // 全局变量存储学生数据
     let studentData = [];
     
-    // DOM元素
     const searchForm = document.getElementById('searchForm');
     const searchValue = document.getElementById('searchValue');
     const searchType = document.getElementById('searchType');
@@ -486,14 +457,12 @@
     const multipleResults = document.getElementById('multipleResults');
     const studentList = document.getElementById('studentList');
     
-    // 页面加载时加载数据
     document.addEventListener('DOMContentLoaded', () => {
       loadData();
     });
     
-    // 加载Excel数据
     async function loadData() {
-      showStatus('正在加载数据，请稍候...', 'info');
+      showStatus('正在加载数据库，请稍候...', 'info');
       
       try {
         const response = await fetch('./data.xlsx');
@@ -503,23 +472,16 @@
         
         const arrayBuffer = await response.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        
-        // 获取所有表名
         const sheetNames = workbook.SheetNames;
         
-        // 处理所有表格
         for (const sheetName of sheetNames) {
           const worksheet = workbook.Sheets[sheetName];
-          
-          // 转换为JSON
           const sheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
-          if (sheetData.length <= 1) continue; // 至少需要标题行和数据行
+          if (sheetData.length <= 1) continue;
           
-          // 处理合并单元格的表头
           const headers = processHeaders(sheetData);
           
-          // 从第二行(index=1)开始加载数据
           for (let i = 1; i < sheetData.length; i++) {
             const row = sheetData[i];
             const student = {};
@@ -530,7 +492,6 @@
               }
             });
             
-            // 只添加有考号和姓名的数据
             if (student['考号'] && student['姓名']) {
               studentData.push(student);
             }
@@ -538,19 +499,17 @@
         }
         
         if (studentData.length === 0) {
-          throw new Error('Excel文件中未找到数据');
+          throw new Error('数据库中未找到数据');
         }
         
         showStatus(`成功加载 ${studentData.length} 条学生数据`, 'success');
       } catch (error) {
-        showStatus(`加载数据失败: ${error.message}`, 'error');
+        showStatus(`加载数据库失败: ${error.message}`, 'error');
         console.error('Error loading data:', error);
       }
     }
     
-    // 处理合并单元格的表头
     function processHeaders(sheetData) {
-      // 假设前两行是合并的表头
       if (sheetData.length < 2) return [];
       
       const row1 = sheetData[0];
@@ -558,7 +517,6 @@
       const headers = [];
       
       for (let i = 0; i < row2.length; i++) {
-        // 合并两个表头行
         let header = '';
         
         if (row1[i] && row1[i].trim()) {
@@ -571,15 +529,12 @@
           header = row2[i].trim();
         }
         
-        // 清理表头
         header = header
           .replace(/\s+/g, ' ')
           .replace(/\(|\)/g, '')
           .trim();
         
-        // 为表头添加唯一标识
         if (header) {
-          // 处理特殊情况
           if (header === '总分 物理 赋分') header = '总分(物理)(赋分)分数';
           else if (header === '总分 物理') header = '总分(物理)分数';
           else if (header === '小语种') header = '小语种分数';
@@ -596,7 +551,6 @@
       return headers;
     }
     
-    // 显示状态信息
     function showStatus(message, type) {
       statusElement.textContent = message;
       statusElement.classList.remove('hidden', 'bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800', 'p-3', 'rounded-lg');
@@ -615,7 +569,6 @@
       }
     }
     
-    // 处理表单提交
     searchForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -627,7 +580,6 @@
         return;
       }
       
-      // 根据选择的查询方式查找学生
       let results = [];
       
       switch (type) {
@@ -639,10 +591,8 @@
           break;
         case 'both':
         default:
-          // 先尝试考号匹配
           results = studentData.filter(s => s['考号']?.toString() === value);
           
-          // 如果没有找到，再尝试姓名匹配
           if (results.length === 0) {
             results = studentData.filter(s => s['姓名']?.toString() === value);
           }
@@ -658,20 +608,16 @@
         multipleResults.classList.add('hidden');
         displayResult(results[0]);
         resultSection.classList.remove('hidden');
-        // 滚动到结果区域
         resultSection.scrollIntoView({ behavior: 'smooth' });
       } else {
-        // 多个结果，显示选择列表
         showStatus('', '');
         resultSection.classList.add('hidden');
         showStudentList(results);
         multipleResults.classList.remove('hidden');
-        // 滚动到选择区域
         multipleResults.scrollIntoView({ behavior: 'smooth' });
       }
     });
     
-    // 显示学生列表供选择
     function showStudentList(students) {
       studentList.innerHTML = '';
       
@@ -695,7 +641,6 @@
           displayResult(student);
           resultSection.classList.remove('hidden');
           multipleResults.classList.add('hidden');
-          // 滚动到结果区域
           resultSection.scrollIntoView({ behavior: 'smooth' });
         });
         
@@ -703,28 +648,23 @@
       });
     }
     
-    // 显示查询结果
     function displayResult(student) {
-      // 显示基本信息
       document.getElementById('school').textContent = getValue(student, '学校');
       document.getElementById('class').textContent = getValue(student, '班级');
       document.getElementById('studentExamId').textContent = getValue(student, '考号');
       document.getElementById('name').textContent = getValue(student, '姓名');
       document.getElementById('subject').textContent = getValue(student, '选科');
       
-      // 填充所有数据字段
       document.querySelectorAll('[data-field]').forEach(element => {
         const field = element.getAttribute('data-field');
         element.textContent = getValue(student, field);
       });
     }
     
-    // 获取值，处理undefined情况
     function getValue(obj, key) {
       return obj[key] !== undefined ? obj[key] : '-';
     }
     
-    // 重置表单
     resetBtn.addEventListener('click', () => {
       searchForm.reset();
       resultSection.classList.add('hidden');
